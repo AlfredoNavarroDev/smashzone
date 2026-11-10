@@ -44,12 +44,19 @@ builder.Services.AddAuthorization();
 
 // --- Dominio ---
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddAutoMapper(cfg => cfg.AddProfile<UsuarioProfile>());
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddProfile<UsuarioProfile>();
+    cfg.AddProfile<CatalogoProfile>();
+});
 builder.Services.AddValidatorsFromAssemblyContaining<RegistroValidator>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IAdminUsuarioService, AdminUsuarioService>();
+builder.Services.AddScoped<ISalaService, SalaService>();
+builder.Services.AddScoped<IPaqueteService, PaqueteService>();
+builder.Services.AddScoped<IInventarioService, InventarioService>();
 
 // --- CORS (frontend Vite) ---
 var origins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? ["http://localhost:5173"];

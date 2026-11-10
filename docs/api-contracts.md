@@ -62,8 +62,42 @@ Definiciones:
 
 ## Bloque 2 — Catálogo
 
-_A completar por el responsable del bloque: `GET/POST/PUT /api/salas`,
-`GET/POST/PUT /api/paquetes`, `GET/POST/PUT /api/inventario`._
+Lectura (`GET`) pública, sin token — el Cliente navega el catálogo sin
+loguearse. Mutaciones (`POST`/`PUT`) requieren `[Authorize(Roles = "Admin")]`
+y devuelven `403` para otros roles. No hay `DELETE`: "eliminar" es
+desactivar vía `PUT .../{id}/estado` (las tablas de Reservas/Detalles
+referencian estas filas sin cascada, borrarlas en duro rompería el
+historial). Nombre único por entidad → `409 Conflict` si ya existe.
+
+### Salas
+- `GET /api/salas?activa=true` — lista (`SalaDTO[]`), filtro opcional por `activa`.
+- `GET /api/salas/{id}` — `404` si no existe.
+- `POST /api/salas` (`CrearSalaDTO`: `nombre`, `capacidadMaxima`, `descripcion?`) → `201` (`SalaDTO`, `activa=true`).
+- `PUT /api/salas/{id}` (`ActualizarSalaDTO`: mismos campos que crear).
+- `PUT /api/salas/{id}/estado` (`CambiarEstadoDTO`: `{ "activo": bool }`).
+
+### Paquetes
+- `GET /api/paquetes?activo=true` — lista (`PaqueteDTO[]`).
+- `GET /api/paquetes/{id}` — `404` si no existe.
+- `POST /api/paquetes` (`CrearPaqueteDTO`: `nombre`, `descripcion`, `precio`, `duracionMinutos`, `maxParticipantes`, `cantidadItemsEstandar`) → `201`.
+- `PUT /api/paquetes/{id}` (`ActualizarPaqueteDTO`: mismos campos).
+- `PUT /api/paquetes/{id}/estado` (`CambiarEstadoDTO`).
+
+### Inventario (ítems extra)
+- `GET /api/inventario?categoria=Vidrio&activo=true` — lista (`ItemExtraDTO[]`), filtros opcionales combinables.
+- `GET /api/inventario/{id}` — `404` si no existe.
+- `POST /api/inventario` (`CrearItemExtraDTO`: `nombre`, `categoria`, `precioUnitario`, `stockDisponible`) → `201`.
+- `PUT /api/inventario/{id}` (`ActualizarItemExtraDTO`: mismos campos).
+- `PUT /api/inventario/{id}/estado` (`CambiarEstadoDTO`).
+
+### Contrato interno para Bloque 3
+`IInventarioService.DescontarStockAsync(idItem, cantidad)` — no es un
+endpoint HTTP, es el método que `ReservaService` debe inyectar y llamar
+al crear una reserva con extras. Lanza `ReglaNegocioException` (→ `400`)
+si el ítem está inactivo o no hay stock suficiente; si no lanza, deja la
+entidad `ItemsExtra` trackeada y descontada en memoria **sin** llamar
+`SaveChanges` — quien la invoque debe persistir todo (reserva + detalles
++ descuento de stock) en la misma transacción/`SaveChangesAsync`.
 
 ## Bloque 3 — Core transaccional
 

@@ -61,7 +61,11 @@ public sealed class TestDb : IDisposable
             new Role { Id = 2, Nombre = "Staff" },
             new Role { Id = 3, Nombre = "Cliente" });
         Db.SaveChanges();
-        Mapper = new MapperConfiguration(c => c.AddProfile<UsuarioProfile>(), NullLoggerFactory.Instance).CreateMapper();
+        Mapper = new MapperConfiguration(c =>
+        {
+            c.AddProfile<UsuarioProfile>();
+            c.AddProfile<CatalogoProfile>();
+        }, NullLoggerFactory.Instance).CreateMapper();
     }
 
     public Usuario AddUsuario(string email, int rol = 3, bool activo = true, string password = "Password1!",
@@ -76,6 +80,34 @@ public sealed class TestDb : IDisposable
         Db.Usuarios.Add(u);
         Db.SaveChanges();
         return u;
+    }
+
+    public Sala AddSala(string nombre, int capacidad = 10, bool activa = true)
+    {
+        var s = new Sala { Nombre = nombre, CapacidadMaxima = capacidad, Activa = activa };
+        Db.Salas.Add(s);
+        Db.SaveChanges();
+        return s;
+    }
+
+    public Paquete AddPaquete(string nombre, decimal precio = 100, bool activo = true)
+    {
+        var p = new Paquete
+        {
+            Nombre = nombre, Descripcion = "Descripcion", Precio = precio,
+            DuracionMinutos = 30, MaxParticipantes = 4, CantidadItemsEstandar = 15, Activo = activo
+        };
+        Db.Paquetes.Add(p);
+        Db.SaveChanges();
+        return p;
+    }
+
+    public ItemsExtra AddItemExtra(string nombre, int stock = 10, bool activo = true)
+    {
+        var i = new ItemsExtra { Nombre = nombre, Categoria = "Vidrio", PrecioUnitario = 5, StockDisponible = stock, Activo = activo };
+        Db.ItemsExtras.Add(i);
+        Db.SaveChanges();
+        return i;
     }
 
     public void Dispose() { Db.Dispose(); _conn.Dispose(); }
