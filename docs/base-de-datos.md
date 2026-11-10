@@ -80,7 +80,7 @@ siempre corre contra un estado limpio — úsalo solo en local, nunca contra
 un ambiente compartido/producción.
 
 ```bash
-docker cp script.sql smashzone-sqlserver:/tmp/script.sql
+docker cp Database/script.sql smashzone-sqlserver:/tmp/script.sql
 docker exec smashzone-sqlserver /opt/mssql-tools18/bin/sqlcmd \
   -C -S localhost -U sa -P "YourSecurePassword123!" -i /tmp/script.sql
 ```
