@@ -48,6 +48,8 @@ CREATE TABLE Usuarios (
     DocumentoIdentidad NVARCHAR(20) NULL,
     Activo BIT NOT NULL DEFAULT 1,
     FechaRegistro DATETIME2 DEFAULT GETUTCDATE(),
+    UltimoAcceso DATETIME2 NULL,      -- ultimo login exitoso
+    UltimaActividad DATETIME2 NULL,   -- ultimo heartbeat (online = < 5 min)
     CONSTRAINT FK_Usuarios_Roles FOREIGN KEY (IdRol) REFERENCES Roles(Id)
 );
 
