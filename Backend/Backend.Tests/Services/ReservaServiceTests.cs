@@ -137,4 +137,90 @@ public class ReservaServiceTests : IDisposable
         var creada = await _sut.CrearAsync(dto, staff.Id, actorEsStaffOAdmin: true);
         Assert.Equal(cliente.Id, creada.IdCliente);
     }
+
+    [Fact]
+    public async Task CambiarEstado_ClienteCancelaPropia_ReponeStockYQuedaCancelada()
+    {
+        var cliente = _t.AddUsuario("c@x.com");
+        var sala = _t.AddSala("Sala A");
+        var paquete = _t.AddPaquete("Paquete A");
+        var item = _t.AddItemExtra("Vaso", stock: 10);
+        var creada = await _sut.CrearAsync(
+            Dto(sala, paquete, extras: [new CrearDetalleExtraDTO { IdItemExtra = item.Id, Cantidad = 4 }]),
+            cliente.Id, false);
+
+        var dto = await _sut.CambiarEstadoAsync(creada.Id, "Cancelada", cliente.Id, actorEsStaffOAdmin: false);
+
+        Assert.Equal("Cancelada", dto.Estado);
+        Assert.Equal(10, _t.Db.ItemsExtras.Single().StockDisponible);
+        Assert.Equal(2, _t.Db.HistorialEstadosReservas.Count()); // creacion + cancelacion
+    }
+
+    [Fact]
+    public async Task CambiarEstado_ClienteCancelaReservaAjena_LanzaNoEncontrado()
+    {
+        var cliente = _t.AddUsuario("c@x.com");
+        var otro = _t.AddUsuario("otro@x.com");
+        var sala = _t.AddSala("Sala A");
+        var paquete = _t.AddPaquete("Paquete A");
+        var creada = await _sut.CrearAsync(Dto(sala, paquete), cliente.Id, false);
+
+        await Assert.ThrowsAsync<NoEncontradoException>(() =>
+            _sut.CambiarEstadoAsync(creada.Id, "Cancelada", otro.Id, actorEsStaffOAdmin: false));
+    }
+
+    [Fact]
+    public async Task CambiarEstado_ClienteIntentaEnProceso_LanzaReglaNegocio()
+    {
+        var cliente = _t.AddUsuario("c@x.com");
+        var sala = _t.AddSala("Sala A");
+        var paquete = _t.AddPaquete("Paquete A");
+        var reserva = _t.AddReserva(cliente, sala, paquete, estado: "Confirmada");
+
+        // Transición válida (Confirmada -> EnProceso), pero el actor no es Staff/Admin.
+        await Assert.ThrowsAsync<ReglaNegocioException>(() =>
+            _sut.CambiarEstadoAsync(reserva.Id, "EnProceso", cliente.Id, actorEsStaffOAdmin: false));
+    }
+
+    [Fact]
+    public async Task CambiarEstado_StaffAvanzaConfirmadaAEnProcesoYCompletada()
+    {
+        var cliente = _t.AddUsuario("c@x.com");
+        var staff = _t.AddUsuario("s@x.com", rol: 2);
+        var sala = _t.AddSala("Sala A");
+        var paquete = _t.AddPaquete("Paquete A");
+        var reserva = _t.AddReserva(cliente, sala, paquete, estado: "Confirmada");
+
+        var enProceso = await _sut.CambiarEstadoAsync(reserva.Id, "EnProceso", staff.Id, actorEsStaffOAdmin: true);
+        Assert.Equal("EnProceso", enProceso.Estado);
+
+        var completada = await _sut.CambiarEstadoAsync(reserva.Id, "Completada", staff.Id, actorEsStaffOAdmin: true);
+        Assert.Equal("Completada", completada.Estado);
+    }
+
+    [Fact]
+    public async Task CambiarEstado_DesdeEstadoTerminal_LanzaReglaNegocio()
+    {
+        var cliente = _t.AddUsuario("c@x.com");
+        var staff = _t.AddUsuario("s@x.com", rol: 2);
+        var sala = _t.AddSala("Sala A");
+        var paquete = _t.AddPaquete("Paquete A");
+        var reserva = _t.AddReserva(cliente, sala, paquete, estado: "Completada");
+
+        await Assert.ThrowsAsync<ReglaNegocioException>(() =>
+            _sut.CambiarEstadoAsync(reserva.Id, "Cancelada", staff.Id, actorEsStaffOAdmin: true));
+    }
+
+    [Fact]
+    public async Task CambiarEstado_ConfirmadaManual_LanzaReglaNegocio()
+    {
+        var cliente = _t.AddUsuario("c@x.com");
+        var staff = _t.AddUsuario("s@x.com", rol: 2);
+        var sala = _t.AddSala("Sala A");
+        var paquete = _t.AddPaquete("Paquete A");
+        var reserva = _t.AddReserva(cliente, sala, paquete, estado: "Pendiente");
+
+        await Assert.ThrowsAsync<ReglaNegocioException>(() =>
+            _sut.CambiarEstadoAsync(reserva.Id, "Confirmada", staff.Id, actorEsStaffOAdmin: true));
+    }
 }
