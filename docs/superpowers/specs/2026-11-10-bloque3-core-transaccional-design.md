@@ -120,16 +120,19 @@ reposición de stock se persisten juntos en un solo `SaveChangesAsync`).
 
 ### 4. Pagos — ruteo por método
 
-`MetodosPago` seedeados (`Database/script.sql`): `PasarelaSimulada
-(Stripe/PayPal)`, `Tarjeta de Crédito/Débito`, `Transferencia Bancaria`,
-`Efectivo`. Se clasifican por **nombre** (no por Id, mismo estilo que
-`AdminUsuarioService.RolAdmin = "Admin"`):
+`MetodosPago` seedeados (`Database/script.sql`): `Tarjeta de
+Crédito/Débito`, `Transferencia Bancaria`, `Efectivo`. (La fila original
+`PasarelaSimulada (Stripe/PayPal)` se eliminó del seed — era un
+placeholder previo a decidir Culqi y duplicaba `Tarjeta de
+Crédito/Débito`, que es justo lo que Culqi procesa.) Se clasifican por
+**nombre** (no por Id, mismo estilo que `AdminUsuarioService.RolAdmin =
+"Admin"`):
 
-- **Gateway** (`PasarelaSimulada (Stripe/PayPal)`, `Tarjeta de
-  Crédito/Débito`): requieren `CulqiToken` generado en el navegador.
-  `PagoService` llama `ICulqiClient.CrearCargoAsync(token, montoCentimos,
-  email)`. El resultado (aprobado/rechazado) lo decide Culqi — el
-  cliente ya no puede declarar `Exitoso` para estos métodos.
+- **Gateway** (`Tarjeta de Crédito/Débito`): requiere `CulqiToken`
+  generado en el navegador. `PagoService` llama
+  `ICulqiClient.CrearCargoAsync(token, montoCentimos, email)`. El
+  resultado (aprobado/rechazado) lo decide Culqi — el cliente ya no
+  puede declarar `Exitoso` para este método.
 - **Manual** (`Transferencia Bancaria`, `Efectivo`): sin token; el
   dinero cambió de manos fuera del sistema, así que **Staff/Admin**
   manda `Exitoso` a mano al registrar el pago (un Cliente no puede
