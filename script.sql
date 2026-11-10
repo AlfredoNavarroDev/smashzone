@@ -20,6 +20,12 @@ GO
 USE SmashZoneDB;
 GO
 
+-- Requerido por los indices filtrados de la seccion 5 (UX_Usuarios_DocumentoIdentidad,
+-- IX_Historial_Usuario). sqlcmd corre con QUOTED_IDENTIFIER OFF por defecto, y SQL Server
+-- rechaza CREATE INDEX ... WHERE sin esta opcion en ON (Msg 1934).
+SET QUOTED_IDENTIFIER ON;
+GO
+
 -- ============================================================================
 -- 1. TABLAS DE SEGURIDAD, USUARIOS Y ROLES
 -- ============================================================================
@@ -39,7 +45,7 @@ CREATE TABLE Usuarios (
     Email NVARCHAR(150) NOT NULL UNIQUE,
     PasswordHash NVARCHAR(MAX) NOT NULL,
     Telefono NVARCHAR(20) NULL,
-    DocumentoIdentidad NVARCHAR(20) UNIQUE NULL,
+    DocumentoIdentidad NVARCHAR(20) NULL,
     Activo BIT NOT NULL DEFAULT 1,
     FechaRegistro DATETIME2 DEFAULT GETUTCDATE(),
     CONSTRAINT FK_Usuarios_Roles FOREIGN KEY (IdRol) REFERENCES Roles(Id)
@@ -115,9 +121,27 @@ CREATE TABLE DetallesReservaExtras (
     Cantidad INT NOT NULL CHECK (Cantidad > 0),
     PrecioUnitarioHistorico DECIMAL(10, 2) NOT NULL CHECK (PrecioUnitarioHistorico >= 0),
     Subtotal AS (Cantidad * PrecioUnitarioHistorico), -- Columna calculada
-    
+
     CONSTRAINT FK_Detalles_Reservas FOREIGN KEY (IdReserva) REFERENCES Reservas(Id) ON DELETE CASCADE,
     CONSTRAINT FK_Detalles_ItemsExtras FOREIGN KEY (IdItemExtra) REFERENCES ItemsExtras(Id)
+);
+
+-- Auditoria de transiciones de estado de una Reserva (Pendiente -> Confirmada
+-- -> EnProceso -> Completada/Cancelada). IdEstadoAnterior NULL = primer
+-- registro (creacion de la reserva). IdUsuarioCambio NULL = cambio hecho
+-- por el sistema (ej. job automatico), no por Staff/Admin.
+CREATE TABLE HistorialEstadosReserva (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    IdReserva UNIQUEIDENTIFIER NOT NULL,
+    IdEstadoAnterior INT NULL,
+    IdEstadoNuevo INT NOT NULL,
+    IdUsuarioCambio UNIQUEIDENTIFIER NULL,
+    FechaCambio DATETIME2 DEFAULT GETUTCDATE(),
+
+    CONSTRAINT FK_Historial_Reservas FOREIGN KEY (IdReserva) REFERENCES Reservas(Id) ON DELETE CASCADE,
+    CONSTRAINT FK_Historial_EstadoAnterior FOREIGN KEY (IdEstadoAnterior) REFERENCES EstadosReserva(Id),
+    CONSTRAINT FK_Historial_EstadoNuevo FOREIGN KEY (IdEstadoNuevo) REFERENCES EstadosReserva(Id),
+    CONSTRAINT FK_Historial_Usuarios FOREIGN KEY (IdUsuarioCambio) REFERENCES Usuarios(Id)
 );
 
 -- ============================================================================
@@ -162,8 +186,21 @@ CREATE INDEX IX_Reservas_Sala_Fechas ON Reservas (IdSala, FechaHoraInicio, Fecha
 -- Consulta de historial de reservas por usuario
 CREATE INDEX IX_Reservas_Cliente ON Reservas (IdCliente);
 
+-- Auditoria admin: historial de cambios de estado por reserva (orden cronologico)
+CREATE INDEX IX_Historial_Reserva_Fecha ON HistorialEstadosReserva (IdReserva, FechaCambio);
+
+-- Auditoria admin: "que cambios hizo este Staff/Admin" (filtra NULL = cambios de sistema)
+CREATE INDEX IX_Historial_Usuario ON HistorialEstadosReserva (IdUsuarioCambio) WHERE IdUsuarioCambio IS NOT NULL;
+
 -- Autenticación rápida por Email
 CREATE INDEX IX_Usuarios_Email ON Usuarios (Email);
+
+-- DocumentoIdentidad: unico SOLO cuando no es NULL (SQL Server trata NULL
+-- como valor en un UNIQUE constraint normal, permitiendo solo un registro
+-- sin documento en toda la tabla; el indice filtrado corrige eso).
+CREATE UNIQUE INDEX UX_Usuarios_DocumentoIdentidad
+ON Usuarios (DocumentoIdentidad)
+WHERE DocumentoIdentidad IS NOT NULL;
 
 GO
 
@@ -263,8 +300,15 @@ INSERT INTO DetallesReservaExtras (IdReserva, IdItemExtra, Cantidad, PrecioUnita
 INSERT INTO Pagos (IdReserva, IdMetodoPago, Monto, TransaccionRef, Exitoso, FechaPago) VALUES 
 (@Reserva1, 1, 63.00, 'TXN-PASARELA-998811', 1, DATEADD(DAY, -5, GETUTCDATE()));
 
-INSERT INTO ExencionesResponsabilidad (IdReserva, Firmado, FechaFirma, EnlaceDocumentoPDF) VALUES 
+INSERT INTO ExencionesResponsabilidad (IdReserva, Firmado, FechaFirma, EnlaceDocumentoPDF) VALUES
 (@Reserva1, 1, DATEADD(DAY, -2, GETUTCDATE()), 'https://storage.smashzone.com/waivers/waiver-res1.pdf');
+
+-- Historial de estados Reserva 1: ciclo completo Pendiente -> Confirmada -> EnProceso -> Completada
+INSERT INTO HistorialEstadosReserva (IdReserva, IdEstadoAnterior, IdEstadoNuevo, IdUsuarioCambio, FechaCambio) VALUES
+(@Reserva1, NULL, 1, NULL, DATEADD(DAY, -5, GETUTCDATE())),
+(@Reserva1, 1, 2, @IdStaff1, DATEADD(HOUR, 2, DATEADD(DAY, -5, GETUTCDATE()))),
+(@Reserva1, 2, 3, @IdStaff1, DATEADD(DAY, -2, GETUTCDATE())),
+(@Reserva1, 3, 4, @IdStaff1, DATEADD(MINUTE, 30, DATEADD(DAY, -2, GETUTCDATE())));
 
 -- Reserva 2: Confirmada
 INSERT INTO Reservas (Id, IdCliente, IdSala, IdPaquete, IdEstado, FechaHoraInicio, FechaHoraFin, NumParticipantes, MontoPaquete, MontoExtras, NotasEspeciales, FechaCreacion)
@@ -277,15 +321,24 @@ VALUES (
 INSERT INTO DetallesReservaExtras (IdReserva, IdItemExtra, Cantidad, PrecioUnitarioHistorico) VALUES 
 (@Reserva2, 1, 2, 15.00); -- 2x TV CRT 21"
 
-INSERT INTO Pagos (IdReserva, IdMetodoPago, Monto, TransaccionRef, Exitoso, FechaPago) VALUES 
+INSERT INTO Pagos (IdReserva, IdMetodoPago, Monto, TransaccionRef, Exitoso, FechaPago) VALUES
 (@Reserva2, 2, 115.00, 'TXN-CARD-445566', 1, DATEADD(DAY, -1, GETUTCDATE()));
+
+-- Historial de estados Reserva 2: Pendiente -> Confirmada
+INSERT INTO HistorialEstadosReserva (IdReserva, IdEstadoAnterior, IdEstadoNuevo, IdUsuarioCambio, FechaCambio) VALUES
+(@Reserva2, NULL, 1, NULL, DATEADD(DAY, -1, GETUTCDATE())),
+(@Reserva2, 1, 2, @IdStaff2, DATEADD(HOUR, 3, DATEADD(DAY, -1, GETUTCDATE())));
 
 -- Reserva 3: Pendiente
 INSERT INTO Reservas (Id, IdCliente, IdSala, IdPaquete, IdEstado, FechaHoraInicio, FechaHoraFin, NumParticipantes, MontoPaquete, MontoExtras, NotasEspeciales, FechaCreacion)
 VALUES (
-    @Reserva3, @IdCliente3, 4, 4, 1, 
-    DATEADD(DAY, 3, GETUTCDATE()), DATEADD(MINUTE, 25, DATEADD(DAY, 3, GETUTCDATE())), 
+    @Reserva3, @IdCliente3, 4, 4, 1,
+    DATEADD(DAY, 3, GETUTCDATE()), DATEADD(MINUTE, 25, DATEADD(DAY, 3, GETUTCDATE())),
     1, 35.00, 0.00, 'Cliente primerizo.', GETUTCDATE()
 );
+
+-- Historial de estados Reserva 3: recien creada, sin cambios de Staff aun
+INSERT INTO HistorialEstadosReserva (IdReserva, IdEstadoAnterior, IdEstadoNuevo, IdUsuarioCambio, FechaCambio) VALUES
+(@Reserva3, NULL, 1, NULL, GETUTCDATE());
 
 GO

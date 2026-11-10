@@ -24,13 +24,14 @@ es que dos bloques **migren** la misma tabla sin coordinarse.
 ## Desarrollo local: SQL Server con Docker
 
 Cada integrante levanta el mismo entorno con Docker Compose, sin instalar
-SQL Server localmente. Archivo `docker-compose.yml` sugerido en la raíz del
-repo (a crear junto con el primer `docker-compose.yml` del proyecto):
+SQL Server localmente. El archivo `docker-compose.yml` ya está en la raíz
+del repo:
 
 ```yaml
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: smashzone-sqlserver
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "YourSecurePassword123!"
@@ -38,13 +39,60 @@ services:
       - "1433:1433"
     volumes:
       - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
 volumes:
   sqlserver-data:
 ```
 
-Connection string local (`appsettings.Development.json`, nunca commiteado
-con password real en `appsettings.json`):
+### Levantar el contenedor
+
+```bash
+docker compose up -d
+```
+
+La primera vez descarga la imagen (~500MB, toma unos minutos). El
+healthcheck tarda ~20-30s en pasar a `healthy` — confirmar antes de correr
+el seed:
+
+```bash
+docker compose ps
+# STATUS debe decir "Up ... (healthy)", no "(health: starting)"
+```
+
+### Ejecutar `script.sql` (crea la DB + seed completo)
+
+El script empieza con `DROP DATABASE SmashZoneDB` si ya existe, así que
+siempre corre contra un estado limpio — úsalo solo en local, nunca contra
+un ambiente compartido/producción.
+
+```bash
+docker cp script.sql smashzone-sqlserver:/tmp/script.sql
+docker exec smashzone-sqlserver /opt/mssql-tools18/bin/sqlcmd \
+  -C -S localhost -U sa -P "YourSecurePassword123!" -i /tmp/script.sql
+```
+
+En Git Bash (Windows) agregar `MSYS_NO_PATHCONV=1` antes de `docker exec`,
+si no, Git Bash reescribe `/opt/...` como una ruta de Windows y el comando
+falla con "no such file or directory".
+
+**Nota sobre `sqlcmd` e índices filtrados**: `sqlcmd` corre con
+`QUOTED_IDENTIFIER OFF` por defecto. Los índices filtrados del script
+(`UX_Usuarios_DocumentoIdentidad`, `IX_Historial_Usuario`) necesitan
+`QUOTED_IDENTIFIER ON`, por eso el script ya trae un
+`SET QUOTED_IDENTIFIER ON;` justo después del `USE SmashZoneDB;` — no
+quitarlo, sin eso esos 2 índices fallan en silencio (sqlcmd sigue
+corriendo el resto del script sin abortar, así que es fácil no notarlo).
+
+### Connection string local
+
+`appsettings.Development.json` (gitignored, nunca commitear con password
+real en `appsettings.json`):
 
 ```
 Server=localhost,1433;Initial Catalog=SmashZoneDB;User ID=sa;Password=YourSecurePassword123!;TrustServerCertificate=True;
