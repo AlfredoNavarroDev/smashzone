@@ -17,6 +17,17 @@ public static class AdminSeeder
         var password = config["SeedAdmin:Password"];
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password)) return;
 
+        try { await SeedInternalAsync(sp, email, password); }
+        catch (Exception ex)
+        {
+            // BD sin crear / script sin aplicar: no impedir que la API arranque.
+            sp.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(AdminSeeder))
+                .LogWarning(ex, "No se pudo sembrar el admin inicial (¿aplicaste Database/script.sql?).");
+        }
+    }
+
+    private static async Task SeedInternalAsync(IServiceProvider sp, string email, string password)
+    {
         using var scope = sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SmashZoneDbContext>();
         email = AuthService.NormalizarEmail(email);

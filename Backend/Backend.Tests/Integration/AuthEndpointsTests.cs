@@ -27,7 +27,10 @@ public class ApiFactory : WebApplicationFactory<Program>
             ["JwtSettings:Issuer"] = TestDb.Jwt.Issuer,
             ["JwtSettings:Audience"] = TestDb.Jwt.Audience,
             ["JwtSettings:ExpirationMinutes"] = "60",
-            ["ConnectionStrings:SmashZoneDB"] = "Server=unused"
+            ["ConnectionStrings:SmashZoneDB"] = "Server=unused",
+            // aislar de appsettings.Development.json local: el seeder de admin no debe correr en tests
+            ["SeedAdmin:Email"] = "",
+            ["SeedAdmin:Password"] = ""
         }));
         builder.ConfigureServices(services =>
         {
