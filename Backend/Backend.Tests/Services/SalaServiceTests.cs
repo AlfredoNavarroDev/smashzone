@@ -52,6 +52,15 @@ public class SalaServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Actualizar_NombreDuplicadoDeOtraSala_LanzaConflicto()
+    {
+        _t.AddSala("Sala A");
+        var otra = _t.AddSala("Sala B");
+        await Assert.ThrowsAsync<ConflictoException>(() =>
+            _sut.ActualizarAsync(otra.Id, new ActualizarSalaDTO { Nombre = "Sala A", CapacidadMaxima = 8 }));
+    }
+
+    [Fact]
     public async Task Listar_FiltraPorActiva()
     {
         _t.AddSala("Activa", activa: true);

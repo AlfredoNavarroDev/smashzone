@@ -94,10 +94,19 @@ historial). Nombre único por entidad → `409 Conflict` si ya existe.
 `IInventarioService.DescontarStockAsync(idItem, cantidad)` — no es un
 endpoint HTTP, es el método que `ReservaService` debe inyectar y llamar
 al crear una reserva con extras. Lanza `ReglaNegocioException` (→ `400`)
-si el ítem está inactivo o no hay stock suficiente; si no lanza, deja la
-entidad `ItemsExtra` trackeada y descontada en memoria **sin** llamar
-`SaveChanges` — quien la invoque debe persistir todo (reserva + detalles
-+ descuento de stock) en la misma transacción/`SaveChangesAsync`.
+si `cantidad <= 0`, el ítem está inactivo o no hay stock suficiente; si
+no lanza, deja la entidad `ItemsExtra` trackeada y descontada en memoria
+**sin** llamar `SaveChanges` — quien la invoque debe persistir todo
+(reserva + detalles + descuento de stock) en la misma
+transacción/`SaveChangesAsync`.
+
+**Límite conocido — sin protección de concurrencia:** no hay columna de
+concurrencia optimista en `ItemsExtras`. Dos reservas simultáneas sobre
+el mismo ítem pueden leer el mismo `StockDisponible` antes de que
+cualquiera persista (lost update). Bloque 3 debe decidir cómo serializar
+el acceso (transacción con aislamiento adecuado, lock explícito, o
+agregar un rowversion) si esto importa en producción — no resuelto en
+este bloque.
 
 ## Bloque 3 — Core transaccional
 

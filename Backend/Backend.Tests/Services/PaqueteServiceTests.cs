@@ -61,6 +61,18 @@ public class PaqueteServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Actualizar_NombreDuplicadoDeOtroPaquete_LanzaConflicto()
+    {
+        _t.AddPaquete("Paquete A");
+        var otro = _t.AddPaquete("Paquete B");
+        await Assert.ThrowsAsync<ConflictoException>(() => _sut.ActualizarAsync(otro.Id, new ActualizarPaqueteDTO
+        {
+            Nombre = "Paquete A", Descripcion = "Nuevo", Precio = 200,
+            DuracionMinutos = 60, MaxParticipantes = 8, CantidadItemsEstandar = 25
+        }));
+    }
+
+    [Fact]
     public async Task Listar_FiltraPorActivo()
     {
         _t.AddPaquete("Activo", activo: true);

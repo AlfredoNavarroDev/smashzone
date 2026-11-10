@@ -19,6 +19,12 @@ public interface IInventarioService
     /// Descuenta stock de un ítem para el Bloque 3 (Reservas). Deja la entidad trackeada
     /// y modificada en memoria; NO llama SaveChanges — el llamador persiste todo junto
     /// en su propia transacción (misma instancia de DbContext, scoped por request).
+    /// Lanza <see cref="ReglaNegocioException"/> si <paramref name="cantidad"/> es &lt;= 0,
+    /// el ítem está inactivo o no hay stock suficiente.
+    /// Sin protección de concurrencia (no hay optimistic concurrency token en ItemsExtras):
+    /// dos reservas simultáneas sobre el mismo ítem pueden leer el mismo stock antes de
+    /// que cualquiera persista — Bloque 3 debe serializar el acceso (ej. transacción con
+    /// aislamiento adecuado o un lock explícito) si esto le preocupa en producción.
     /// </summary>
     Task DescontarStockAsync(int idItem, int cantidad);
 }
@@ -70,6 +76,7 @@ public class InventarioService(SmashZoneDbContext db, IMapper mapper) : IInventa
 
     public async Task DescontarStockAsync(int idItem, int cantidad)
     {
+        if (cantidad <= 0) throw new ReglaNegocioException("La cantidad a descontar debe ser mayor a 0.");
         var i = await Cargar(idItem);
         if (!i.Activo || i.StockDisponible < cantidad)
             throw new ReglaNegocioException($"Stock insuficiente para '{i.Nombre}'.");

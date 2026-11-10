@@ -92,4 +92,22 @@ public class InventarioServiceTests : IDisposable
         var i = _t.AddItemExtra("Vaso", stock: 10, activo: false);
         await Assert.ThrowsAsync<ReglaNegocioException>(() => _sut.DescontarStockAsync(i.Id, 1));
     }
+
+    [Fact]
+    public async Task DescontarStock_CantidadCeroONegativa_LanzaReglaNegocioYNoAlteraStock()
+    {
+        var i = _t.AddItemExtra("Vaso", stock: 10);
+        await Assert.ThrowsAsync<ReglaNegocioException>(() => _sut.DescontarStockAsync(i.Id, 0));
+        await Assert.ThrowsAsync<ReglaNegocioException>(() => _sut.DescontarStockAsync(i.Id, -3));
+        Assert.Equal(10, _t.Db.ItemsExtras.Single().StockDisponible);
+    }
+
+    [Fact]
+    public async Task Actualizar_NombreDuplicadoDeOtroItem_LanzaConflicto()
+    {
+        _t.AddItemExtra("Vaso");
+        var otro = _t.AddItemExtra("Plato");
+        await Assert.ThrowsAsync<ConflictoException>(() => _sut.ActualizarAsync(otro.Id,
+            new ActualizarItemExtraDTO { Nombre = "Vaso", Categoria = "Ceramica", PrecioUnitario = 3, StockDisponible = 5 }));
+    }
 }
