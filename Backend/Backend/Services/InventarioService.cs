@@ -27,6 +27,13 @@ public interface IInventarioService
     /// aislamiento adecuado o un lock explícito) si esto le preocupa en producción.
     /// </summary>
     Task DescontarStockAsync(int idItem, int cantidad);
+
+    /// <summary>
+    /// Repone stock de un ítem (ej. al cancelar una reserva, Bloque 3). Mismo contrato
+    /// "muta sin guardar" que <see cref="DescontarStockAsync"/>: deja la entidad trackeada
+    /// en memoria, NO llama SaveChanges.
+    /// </summary>
+    Task ReponerStockAsync(int idItem, int cantidad);
 }
 
 public class InventarioService(SmashZoneDbContext db, IMapper mapper) : IInventarioService
@@ -81,6 +88,13 @@ public class InventarioService(SmashZoneDbContext db, IMapper mapper) : IInventa
         if (!i.Activo || i.StockDisponible < cantidad)
             throw new ReglaNegocioException($"Stock insuficiente para '{i.Nombre}'.");
         i.StockDisponible -= cantidad;
+    }
+
+    public async Task ReponerStockAsync(int idItem, int cantidad)
+    {
+        if (cantidad <= 0) throw new ReglaNegocioException("La cantidad a reponer debe ser mayor a 0.");
+        var i = await Cargar(idItem);
+        i.StockDisponible += cantidad;
     }
 
     private async Task<ItemsExtra> Cargar(int id) =>

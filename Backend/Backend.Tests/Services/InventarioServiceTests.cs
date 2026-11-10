@@ -110,4 +110,27 @@ public class InventarioServiceTests : IDisposable
         await Assert.ThrowsAsync<ConflictoException>(() => _sut.ActualizarAsync(otro.Id,
             new ActualizarItemExtraDTO { Nombre = "Vaso", Categoria = "Ceramica", PrecioUnitario = 3, StockDisponible = 5 }));
     }
+
+    [Fact]
+    public async Task ReponerStock_SumaAlDisponible()
+    {
+        var i = _t.AddItemExtra("Vaso", stock: 5);
+        await _sut.ReponerStockAsync(i.Id, 3);
+        await _t.Db.SaveChangesAsync();
+        Assert.Equal(8, _t.Db.ItemsExtras.Single().StockDisponible);
+    }
+
+    [Fact]
+    public async Task ReponerStock_CantidadCeroONegativa_LanzaReglaNegocio()
+    {
+        var i = _t.AddItemExtra("Vaso", stock: 5);
+        await Assert.ThrowsAsync<ReglaNegocioException>(() => _sut.ReponerStockAsync(i.Id, 0));
+        Assert.Equal(5, _t.Db.ItemsExtras.Single().StockDisponible);
+    }
+
+    [Fact]
+    public async Task ReponerStock_ItemNoExistente_LanzaNoEncontrado()
+    {
+        await Assert.ThrowsAsync<NoEncontradoException>(() => _sut.ReponerStockAsync(999, 1));
+    }
 }
