@@ -23,3 +23,5 @@ appsettings.Local.json
 .idea/
 .DS_Store
 *.swp
+
+!.env.example
