@@ -128,3 +128,15 @@ dotnet ef dbcontext scaffold "Server=localhost,1433;Initial Catalog=SmashZoneDB;
 - Antes de modificar `script.sql`, hacer `pull` de `main` para evitar
   cambios de schema duplicados/conflictivos entre bloques.
 - Commit de `script.sql` + modelos regenerados van juntos en el mismo PR.
+
+## Actividad de usuarios (Bloque 1)
+
+`Usuarios` incluye dos columnas para medir actividad:
+
+- `UltimoAcceso` (`DATETIME2 NULL`): último login exitoso.
+- `UltimaActividad` (`DATETIME2 NULL`): último heartbeat o login; un usuario está *online* si es menor a 5 minutos.
+
+Los usuarios de ejemplo del script traen hashes ficticios (no se puede iniciar sesión con ellos).
+En desarrollo, definir `SeedAdmin:Email` y `SeedAdmin:Password` en `appsettings.Development.json`
+(ver `appsettings.Development.example.json`) hace que la API cree/actualice ese Admin con un hash BCrypt real al arrancar.
+

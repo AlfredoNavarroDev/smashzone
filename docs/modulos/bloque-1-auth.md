@@ -45,3 +45,19 @@ agregar/cambiar endpoints.
 - Nunca loguear ni devolver el password/hash en ninguna respuesta.
 - El secret de JWT en local vive en `appsettings.Development.json`
   (ignorado por git), no en `appsettings.json`.
+
+## Estado de implementación
+
+Implementado: registro, login JWT (60 min), perfil y cambio de contraseña, heartbeat de actividad,
+panel Admin (`/admin/usuarios`) con métricas, filtros, cambio de rol y habilitar/deshabilitar.
+Hash con BCrypt.Net-Next. Pruebas: `dotnet test` (Backend/) y `npm test` (Frontend/).
+
+Cómo probarlo en local:
+1. `docker compose up -d` y aplicar `Database/script.sql` (ver `docs/base-de-datos.md`).
+2. Copiar `Backend/Backend/appsettings.Development.example.json` a `appsettings.Development.json` y completar
+   cadena de conexión, `JwtSettings:Secret` (≥ 32 caracteres) y `SeedAdmin`.
+3. `dotnet run --project Backend/Backend` (http://localhost:5021) y `npm run dev` en `Frontend/` (copiar `.env.example` a `.env` si cambia la URL).
+
+Nota: el layout/router del Frontend es un shell mínimo para poder montar Login, Perfil y Admin;
+el Bloque 4 puede reemplazarlo por el definitivo.
+
