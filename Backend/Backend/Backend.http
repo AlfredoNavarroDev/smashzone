@@ -1,6 +1,26 @@
 @Backend_HostAddress = http://localhost:5021
 
-GET {{Backend_HostAddress}}/weatherforecast/
-Accept: application/json
+### Registro
+POST {{Backend_HostAddress}}/api/auth/registro
+Content-Type: application/json
 
-###
+{ "nombre": "Ana", "apellido": "Garcia", "email": "ana@correo.com", "password": "Password1!", "telefono": "999888777" }
+
+### Login (copia el token a @token)
+POST {{Backend_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "ana@correo.com", "password": "Password1!" }
+
+### Perfil
+@token = pega-aqui-el-token
+GET {{Backend_HostAddress}}/api/usuarios/me
+Authorization: Bearer {{token}}
+
+### Admin: resumen de usuarios
+GET {{Backend_HostAddress}}/api/admin/usuarios/resumen
+Authorization: Bearer {{token}}
+
+### Admin: listar usuarios online
+GET {{Backend_HostAddress}}/api/admin/usuarios?online=true&pagina=1&tamanoPagina=20
+Authorization: Bearer {{token}}
