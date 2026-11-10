@@ -1,8 +1,16 @@
 # Base de datos
 
-Motor: **SQL Server**. Acceso: **EF Core 10**, Code First con migraciones
-incrementales (una migración por feature, nunca una migración gigante al
-final).
+Motor: **SQL Server**. Acceso: **EF Core 10**, **DB First**.
+
+`script.sql` es la **única fuente de verdad del schema**. Nunca se edita
+el schema desde migraciones EF ni desde el código — todo cambio de tabla,
+columna, constraint o índice se hace primero en `script.sql`, y luego se
+regenera el modelo EF Core con `Scaffold-DbContext` (o
+`dotnet ef dbcontext scaffold`).
+
+> Decisión tomada 2026-11-09, reemplaza el Code First original de este
+> documento. Motivo: equipo prefiere controlar el schema SQL directamente
+> vía `script.sql` en vez de dejar que EF Core lo derive de las entidades.
 
 ## Entidades (ver schema SQL completo en el spec funcional)
 
@@ -98,15 +106,25 @@ real en `appsettings.json`):
 Server=localhost,1433;Initial Catalog=SmashZoneDB;User ID=sa;Password=YourSecurePassword123!;TrustServerCertificate=True;
 ```
 
-## Migraciones
+## Cambios de schema (DB First)
+
+Flujo para cualquier cambio de tabla/columna/constraint/índice:
+
+1. Editar `script.sql` (agregar `ALTER TABLE` o actualizar el `CREATE TABLE`
+   si la DB local aún no tiene datos que conservar).
+2. Correr el script contra la DB local (ver sección arriba) para validar
+   que aplica sin errores.
+3. Regenerar el contexto EF Core:
 
 ```bash
 cd Backend/Backend
-dotnet ef migrations add <NombreDescriptivo>
-dotnet ef database update
+dotnet ef dbcontext scaffold "Server=localhost,1433;Initial Catalog=SmashZoneDB;User ID=sa;Password=YourSecurePassword123!;TrustServerCertificate=True;" Microsoft.EntityFrameworkCore.SqlServer -o Models --context-dir Data --context SmashZoneDbContext --force
 ```
 
-- Nombrar migraciones por lo que agregan (`AddReservasTable`,
-  `AddInventarioStockColumn`), no `Migration1`, `Migration2`.
-- Antes de hacer `dotnet ef migrations add`, hacer `pull` de `main` para
-  evitar migraciones duplicadas/conflictivas entre bloques.
+- `--force` sobreescribe los modelos generados — nunca editar a mano un
+  archivo bajo `Models/` generado por scaffold, se pierde en el próximo
+  scaffold. Lógica custom (validaciones, métodos) va en Services, no en
+  la entidad.
+- Antes de modificar `script.sql`, hacer `pull` de `main` para evitar
+  cambios de schema duplicados/conflictivos entre bloques.
+- Commit de `script.sql` + modelos regenerados van juntos en el mismo PR.
