@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using AutoMapper;
 using Backend.Configuration;
 using Backend.Data;
@@ -36,9 +37,12 @@ public sealed class TestDb : IDisposable
     public IMapper Mapper { get; }
     public FakeTime Time { get; } = new();
 
+    // Se genera en cada ejecución: ningún secreto literal en el repositorio.
+    private static readonly string TestSecret = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+
     public static JwtSettings Jwt => new()
     {
-        Secret = "clave-de-pruebas-con-al-menos-32-caracteres!!",
+        Secret = TestSecret,
         Issuer = "smashzone-tests",
         Audience = "smashzone-tests",
         ExpirationMinutes = 60
