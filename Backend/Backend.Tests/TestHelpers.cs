@@ -4,6 +4,7 @@ using Backend.Configuration;
 using Backend.Data;
 using Backend.Mapping;
 using Backend.Models;
+using Backend.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -27,6 +28,18 @@ public sealed class FakeTime : TimeProvider
 {
     public DateTimeOffset Now { get; set; } = new(2026, 11, 9, 12, 0, 0, TimeSpan.Zero);
     public override DateTimeOffset GetUtcNow() => Now;
+}
+
+public sealed class FakeCulqiClient : ICulqiClient
+{
+    public bool ProximoExitoso { get; set; } = true;
+    public string? ProximoMensaje { get; set; }
+    public string ProximaReferencia { get; set; } = "chr_test_123";
+
+    public Task<ResultadoCargoCulqi> CrearCargoAsync(string token, int montoCentimos, string email) =>
+        Task.FromResult(ProximoExitoso
+            ? new ResultadoCargoCulqi(true, ProximaReferencia, null)
+            : new ResultadoCargoCulqi(false, null, ProximoMensaje ?? "Tarjeta rechazada."));
 }
 
 /// <summary>BD SQLite en memoria con los roles semilla (1=Admin, 2=Staff, 3=Cliente).</summary>
