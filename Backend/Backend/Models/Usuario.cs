@@ -25,6 +25,10 @@ public partial class Usuario
 
     public DateTime? FechaRegistro { get; set; }
 
+    public DateTime? UltimoAcceso { get; set; }
+
+    public DateTime? UltimaActividad { get; set; }
+
     public virtual ICollection<HistorialEstadosReserva> HistorialEstadosReservas { get; set; } = new List<HistorialEstadosReserva>();
 
     public virtual Role IdRolNavigation { get; set; } = null!;
