@@ -114,6 +114,11 @@ Todos los endpoints requieren `Authorization: Bearer <jwt>`. Un Cliente
 solo ve/opera sus propias reservas — `GET`/`PUT estado` sobre una
 reserva ajena devuelve `404` (no `403`, para no filtrar su existencia).
 
+Todas las fechas son UTC (ISO-8601, con sufijo `Z` o sin offset
+interpretado como UTC). Aplica a `fechaHoraInicio` y a cualquier otro
+datetime de los contratos de este bloque (`fechaHoraFin`, `fechaPago`,
+`fechaCambio`): el servidor no hace conversión de zona horaria.
+
 ### `POST /api/reservas`
 Cliente (reserva para sí), Staff o Admin (`IdCliente` opcional, reserva
 a nombre de otro usuario — ignorado si el actor es Cliente).
@@ -125,9 +130,9 @@ Request (`CrearReservaDTO`):
 ```
 `fechaHoraFin` se calcula server-side (`fechaHoraInicio + Paquete.DuracionMinutos`),
 no se manda. Response `201` (`ReservaDetalleDTO`). `400` si sala/paquete
-inactivos, fecha pasada, o supera cupo. `404` si sala/paquete/ítem extra
-no existen. `409` si hay solapamiento de horario en la sala o stock
-insuficiente de algún extra.
+inactivos, fecha pasada, supera cupo, o no hay stock suficiente de algún
+extra. `404` si sala/paquete/ítem extra no existen. `409` solo si hay
+solapamiento de horario en la sala.
 
 ### `GET /api/reservas/{id}` · `GET /api/reservas?estado=`
 Cliente ve solo las propias; Staff/Admin ven todas, filtro opcional por
@@ -155,7 +160,32 @@ mano). `monto` nunca lo manda el cliente — el servidor lo fija como
 `MontoPaquete + MontoExtras` de la reserva. La reserva debe estar
 `Pendiente` — `409` si no. Pago exitoso confirma la reserva
 (`Pendiente → Confirmada`) en la misma operación. Response `201`
-(`VoucherDTO`). `400` si tarjeta rechazada por Culqi o falta el token.
+(`VoucherDTO`) — un `201` siempre significa pago exitoso.
+`400` si: tarjeta rechazada por Culqi, falta el `culqiToken`, un Cliente
+(no Staff/Admin) intenta confirmar un método de pago manual, no se indica
+`exitoso` en un pago manual, el pago manual se registra como no exitoso
+(el intento queda guardado en `Pagos` con `Exitoso = false`, igual que un
+rechazo de tarjeta), o el monto a pagar es `0`. Un error de
+configuración/infraestructura de la pasarela (API key inválida, endpoint
+caído) **no** se reporta como rechazo: sale como `500`.
+
+### Límites conocidos
+
+- **Doble reserva simultánea del mismo horario:** la verificación de
+  solapamiento es un `SELECT` previo al `INSERT`, sin lock ni índice
+  único. Dos peticiones concurrentes para la misma sala y horario pueden
+  pasar ambas la validación y crear dos reservas solapadas — misma clase
+  de race condition que el stock de Bloque 2, y tampoco resuelta aquí.
+- **Dos pagos simultáneos sobre la misma reserva `Pendiente`:** la
+  comprobación de estado también es una lectura previa. Ambas peticiones
+  pueden llegar a cobrar en Culqi antes de que cualquiera persista, con
+  lo que el cliente termina cobrado dos veces. No hay idempotencia por
+  reserva ni clave `Idempotency-Key`.
+- **Cancelar una reserva ya pagada (`Confirmada`):** repone el stock de
+  los extras, pero **no** genera ningún reembolso en Culqi ni marca ni
+  anula el `Pago` exitoso previo. El voucher sigue existiendo tal cual.
+  La devolución del dinero queda fuera del alcance de este bloque y hoy
+  es un proceso manual.
 
 ## Bloque 4 — Reportes
 
