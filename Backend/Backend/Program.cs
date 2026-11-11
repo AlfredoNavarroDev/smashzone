@@ -26,6 +26,7 @@ builder.Services.AddOptions<JwtSettings>()
 
 builder.Services.AddOptions<CulqiSettings>()
     .Bind(builder.Configuration.GetSection(CulqiSettings.Section))
+    .Validate(s => !string.IsNullOrWhiteSpace(s.SecretKey), "CulqiSettings:SecretKey no puede estar vacío.")
     .ValidateOnStart();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();

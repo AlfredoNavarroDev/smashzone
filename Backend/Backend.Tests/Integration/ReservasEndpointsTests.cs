@@ -12,12 +12,18 @@ public class ReservasEndpointsTests : IClassFixture<ApiFactory>
     private readonly ApiFactory _f;
     private Sala _sala = null!;
     private Paquete _paquete = null!;
+    private MetodosPago _metodoManual = null!;
 
     public ReservasEndpointsTests(ApiFactory f)
     {
         _f = f;
         _f.Seed(db =>
         {
+            if (!db.MetodosPagos.Any())
+                db.MetodosPagos.AddRange(
+                    new MetodosPago { Id = 1, Nombre = "Tarjeta de Crédito/Débito" },
+                    new MetodosPago { Id = 2, Nombre = "Transferencia Bancaria" },
+                    new MetodosPago { Id = 3, Nombre = "Efectivo" });
             if (!db.EstadosReservas.Any())
                 db.EstadosReservas.AddRange(
                     new EstadosReserva { Id = 1, Nombre = "Pendiente" },
@@ -38,6 +44,7 @@ public class ReservasEndpointsTests : IClassFixture<ApiFactory>
         var db = scope.ServiceProvider.GetRequiredService<Backend.Data.SmashZoneDbContext>();
         _sala = db.Salas.Single(s => s.Nombre == "Sala Reservas Test");
         _paquete = db.Paquetes.Single(p => p.Nombre == "Paquete Reservas Test");
+        _metodoManual = db.MetodosPagos.Single(m => m.Nombre == "Transferencia Bancaria");
     }
 
     private async Task<HttpClient> ClienteAutenticado(string email, string pwd)
@@ -87,5 +94,38 @@ public class ReservasEndpointsTests : IClassFixture<ApiFactory>
         var creada = await crear.Content.ReadFromJsonAsync<ReservaDetalleDTO>();
 
         Assert.Equal(HttpStatusCode.Forbidden, (await cliente.GetAsync($"/api/reservas/{creada!.Id}/historial")).StatusCode);
+    }
+
+    /// <summary>Ningún test debe poder salir a api.culqi.com por accidente.</summary>
+    [Fact]
+    public void HostDePruebas_ResuelveLaPasarelaFalsa()
+    {
+        using var scope = _f.Services.CreateScope();
+        Assert.IsType<FakeCulqiClient>(scope.ServiceProvider.GetRequiredService<Backend.Services.ICulqiClient>());
+    }
+
+    /// <summary>
+    /// Cubre /api/pagos a nivel HTTP: el endpoint existe, exige token y aplica la regla de
+    /// que un pago manual (Transferencia/Efectivo) solo lo confirma Staff/Admin.
+    /// </summary>
+    [Fact]
+    public async Task PostPagos_ManualComoCliente_Da400_YSinToken_Da401()
+    {
+        var reg = await _f.CreateClient().PostAsJsonAsync("/api/auth/registro",
+            new RegistroDTO { Nombre = "C", Apellido = "L", Email = "cli-pago@t.com", Password = "Password1!" });
+        Assert.Equal(HttpStatusCode.Created, reg.StatusCode);
+        var cliente = await ClienteAutenticado("cli-pago@t.com", "Password1!");
+
+        var crear = await cliente.PostAsJsonAsync("/api/reservas",
+            new CrearReservaDTO { IdSala = _sala.Id, IdPaquete = _paquete.Id, FechaHoraInicio = DateTime.UtcNow.AddDays(5), NumParticipantes = 2 });
+        Assert.Equal(HttpStatusCode.Created, crear.StatusCode);
+        var creada = await crear.Content.ReadFromJsonAsync<ReservaDetalleDTO>();
+
+        var pagoDto = new CrearPagoDTO { IdReserva = creada!.Id, IdMetodoPago = _metodoManual.Id, Exitoso = true };
+
+        Assert.Equal(HttpStatusCode.Unauthorized,
+            (await _f.CreateClient().PostAsJsonAsync("/api/pagos", pagoDto)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await cliente.PostAsJsonAsync("/api/pagos", pagoDto)).StatusCode);
     }
 }

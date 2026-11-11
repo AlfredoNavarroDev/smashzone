@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
+using Backend.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
@@ -17,6 +18,9 @@ public class ApiFactory : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection _conn = new("DataSource=:memory:");
 
+    /// <summary>Pasarela falsa del host de pruebas; los tests pueden ajustar su resultado.</summary>
+    public FakeCulqiClient Culqi { get; } = new() { ProximoExitoso = true };
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         _conn.Open();
@@ -28,6 +32,9 @@ public class ApiFactory : WebApplicationFactory<Program>
             ["JwtSettings:Audience"] = TestDb.Jwt.Audience,
             ["JwtSettings:ExpirationMinutes"] = "60",
             ["ConnectionStrings:SmashZoneDB"] = "Server=unused",
+            // Placeholder: CulqiSettings valida en el arranque, y el cliente real se
+            // reemplaza más abajo por FakeCulqiClient (ningún test sale a la red).
+            ["CulqiSettings:SecretKey"] = "sk_test_fake_key_for_tests",
             // aislar de appsettings.Development.json local: el seeder de admin no debe correr en tests
             ["SeedAdmin:Email"] = "",
             ["SeedAdmin:Password"] = ""
@@ -41,6 +48,11 @@ public class ApiFactory : WebApplicationFactory<Program>
                 services.Remove(d);
             services.AddScoped<SmashZoneDbContext>(_ => new SqliteTestDbContext(
                 new DbContextOptionsBuilder<SmashZoneDbContext>().UseSqlite(_conn).Options));
+
+            // El CulqiClient real haría HTTP contra api.culqi.com: se reemplaza por el fake.
+            foreach (var d in services.Where(d => d.ServiceType == typeof(ICulqiClient)).ToList())
+                services.Remove(d);
+            services.AddSingleton<ICulqiClient>(Culqi);
         });
     }
 
