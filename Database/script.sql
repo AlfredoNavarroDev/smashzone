@@ -225,8 +225,11 @@ INSERT INTO EstadosReserva (Nombre) VALUES
 ('Cancelada');
 
 -- 6.3 MÉTODOS DE PAGO
-INSERT INTO MetodosPago (Nombre) VALUES 
-('PasarelaSimulada (Stripe/PayPal)'),
+-- 'Tarjeta de Crédito/Débito' es el único método de gateway: se procesa
+-- vía Culqi (pasarela real para Perú, ver docs/superpowers/specs/2026-11-10-bloque3-core-transaccional-design.md).
+-- 'Transferencia Bancaria' y 'Efectivo' son manuales: Staff/Admin confirma
+-- el pago a mano, no pasan por ningún gateway.
+INSERT INTO MetodosPago (Nombre) VALUES
 ('Tarjeta de Crédito/Débito'),
 ('Transferencia Bancaria'),
 ('Efectivo');
@@ -299,8 +302,8 @@ VALUES (
 INSERT INTO DetallesReservaExtras (IdReserva, IdItemExtra, Cantidad, PrecioUnitarioHistorico) VALUES 
 (@Reserva1, 6, 1, 18.00); -- 1x Laptop Obsoleta
 
-INSERT INTO Pagos (IdReserva, IdMetodoPago, Monto, TransaccionRef, Exitoso, FechaPago) VALUES 
-(@Reserva1, 1, 63.00, 'TXN-PASARELA-998811', 1, DATEADD(DAY, -5, GETUTCDATE()));
+INSERT INTO Pagos (IdReserva, IdMetodoPago, Monto, TransaccionRef, Exitoso, FechaPago) VALUES
+(@Reserva1, 1, 63.00, 'TXN-CULQI-998811', 1, DATEADD(DAY, -5, GETUTCDATE()));
 
 INSERT INTO ExencionesResponsabilidad (IdReserva, Firmado, FechaFirma, EnlaceDocumentoPDF) VALUES
 (@Reserva1, 1, DATEADD(DAY, -2, GETUTCDATE()), 'https://storage.smashzone.com/waivers/waiver-res1.pdf');
@@ -324,7 +327,7 @@ INSERT INTO DetallesReservaExtras (IdReserva, IdItemExtra, Cantidad, PrecioUnita
 (@Reserva2, 1, 2, 15.00); -- 2x TV CRT 21"
 
 INSERT INTO Pagos (IdReserva, IdMetodoPago, Monto, TransaccionRef, Exitoso, FechaPago) VALUES
-(@Reserva2, 2, 115.00, 'TXN-CARD-445566', 1, DATEADD(DAY, -1, GETUTCDATE()));
+(@Reserva2, 2, 115.00, 'TRANSF-BCP-445566', 1, DATEADD(DAY, -1, GETUTCDATE()));
 
 -- Historial de estados Reserva 2: Pendiente -> Confirmada
 INSERT INTO HistorialEstadosReserva (IdReserva, IdEstadoAnterior, IdEstadoNuevo, IdUsuarioCambio, FechaCambio) VALUES
