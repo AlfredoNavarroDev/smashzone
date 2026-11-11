@@ -189,5 +189,32 @@ caído) **no** se reporta como rechazo: sale como `500`.
 
 ## Bloque 4 — Reportes
 
-_A completar: `GET /api/reportes/ingresos-por-mes`,
-`GET /api/reportes/paquete-mas-demandado`, `GET /api/reportes/horas-pico`._
+Todos los endpoints requieren `Authorization: Bearer <jwt>` y rol
+`Admin` (`[Authorize(Roles = "Admin")]`) — Staff no tiene acceso.
+Los 3 aceptan `desde`/`hasta` opcionales (query params, `DateTime`).
+`400` si `desde > hasta`. Sin filtro, agregan sobre todo el histórico.
+
+### `GET /api/reportes/ingresos-por-mes?desde=&hasta=`
+Filtra por `Pago.FechaPago`. Suma `Monto` de pagos con `Exitoso = true`,
+agrupado por año-mes. Response `200`:
+```json
+[{ "anio": 2026, "mes": 1, "totalIngresos": 1500.00 }]
+```
+Ordenado por `anio, mes` ascendente.
+
+### `GET /api/reportes/paquete-mas-demandado?desde=&hasta=`
+Filtra por `Reserva.FechaHoraInicio`. Cuenta reservas con
+`Estado != "Cancelada"`, agrupado por paquete. Response `200`
+(ranking completo, no solo el top 1):
+```json
+[{ "idPaquete": 2, "paquete": "Paquete VIP", "totalReservas": 14 }]
+```
+Ordenado por `totalReservas` descendente.
+
+### `GET /api/reportes/horas-pico?desde=&hasta=`
+Mismo filtro y exclusión de `Cancelada` que el anterior, agrupado por
+hora del día (0–23) de `FechaHoraInicio`. Response `200`:
+```json
+[{ "hora": 18, "totalReservas": 9 }]
+```
+Ordenado por `totalReservas` descendente.
