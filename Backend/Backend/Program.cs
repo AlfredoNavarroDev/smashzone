@@ -65,6 +65,7 @@ builder.Services.AddScoped<IPaqueteService, PaqueteService>();
 builder.Services.AddScoped<IInventarioService, InventarioService>();
 builder.Services.AddScoped<IReservaService, ReservaService>();
 builder.Services.AddScoped<IPagoService, PagoService>();
+builder.Services.AddScoped<IReportesService, ReportesService>();
 builder.Services.AddHttpClient<ICulqiClient, CulqiClient>((sp, c) =>
 {
     var settings = sp.GetRequiredService<IOptions<CulqiSettings>>().Value;
