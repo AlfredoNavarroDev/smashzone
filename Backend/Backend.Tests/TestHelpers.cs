@@ -153,5 +153,17 @@ public sealed class TestDb : IDisposable
         return r;
     }
 
+    public Pago AddPago(Reserva reserva, int idMetodoPago, decimal monto, bool exitoso = true, DateTime? fechaPago = null)
+    {
+        var p = new Pago
+        {
+            Id = Guid.NewGuid(), IdReserva = reserva.Id, IdMetodoPago = idMetodoPago,
+            Monto = monto, Exitoso = exitoso, FechaPago = fechaPago ?? Time.Now.UtcDateTime
+        };
+        Db.Pagos.Add(p);
+        Db.SaveChanges();
+        return p;
+    }
+
     public void Dispose() { Db.Dispose(); _conn.Dispose(); }
 }

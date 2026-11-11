@@ -189,5 +189,41 @@ caído) **no** se reporta como rechazo: sale como `500`.
 
 ## Bloque 4 — Reportes
 
-_A completar: `GET /api/reportes/ingresos-por-mes`,
-`GET /api/reportes/paquete-mas-demandado`, `GET /api/reportes/horas-pico`._
+Todos los endpoints requieren `Authorization: Bearer <jwt>` y rol
+`Admin` (`[Authorize(Roles = "Admin")]`) — Staff no tiene acceso.
+Los 3 aceptan `desde`/`hasta` opcionales (query params, `DateTime`).
+`400` si `desde > hasta`. Sin filtro, agregan sobre todo el histórico.
+Fechas (`desde`, `hasta`, y `hora` en `horas-pico`) son UTC — el
+servidor no hace conversión de zona horaria, el frontend debe ajustar
+a hora local si corresponde. `hasta` siempre cubre el día completo:
+el servidor ignora la hora que venga en `hasta` y filtra hasta las
+23:59:59.999 de esa fecha (ej. `hasta=2026-01-15T10:00:00` incluye
+todo el 15 de enero, no solo hasta las 10am).
+Los 3 reportes solo devuelven los grupos con datos — meses/horas/
+paquetes sin actividad no aparecen con total cero; el frontend debe
+rellenar los huecos si grafica un eje continuo.
+
+### `GET /api/reportes/ingresos-por-mes?desde=&hasta=`
+Filtra por `Pago.FechaPago`. Suma `Monto` de pagos con `Exitoso = true`,
+agrupado por año-mes. Response `200`:
+```json
+[{ "anio": 2026, "mes": 1, "totalIngresos": 1500.00 }]
+```
+Ordenado por `anio, mes` ascendente.
+
+### `GET /api/reportes/paquete-mas-demandado?desde=&hasta=`
+Filtra por `Reserva.FechaHoraInicio`. Cuenta reservas con
+`Estado != "Cancelada"`, agrupado por paquete. Response `200`
+(ranking completo, no solo el top 1):
+```json
+[{ "idPaquete": 2, "paquete": "Paquete VIP", "totalReservas": 14 }]
+```
+Ordenado por `totalReservas` descendente.
+
+### `GET /api/reportes/horas-pico?desde=&hasta=`
+Mismo filtro y exclusión de `Cancelada` que el anterior, agrupado por
+hora del día (0–23) de `FechaHoraInicio`. Response `200`:
+```json
+[{ "hora": 18, "totalReservas": 9 }]
+```
+Ordenado por `totalReservas` descendente.
