@@ -52,6 +52,7 @@ builder.Services.AddAutoMapper(cfg =>
 {
     cfg.AddProfile<UsuarioProfile>();
     cfg.AddProfile<CatalogoProfile>();
+    cfg.AddProfile<ReservaProfile>();
 });
 builder.Services.AddValidatorsFromAssemblyContaining<RegistroValidator>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
@@ -61,6 +62,8 @@ builder.Services.AddScoped<IAdminUsuarioService, AdminUsuarioService>();
 builder.Services.AddScoped<ISalaService, SalaService>();
 builder.Services.AddScoped<IPaqueteService, PaqueteService>();
 builder.Services.AddScoped<IInventarioService, InventarioService>();
+builder.Services.AddScoped<IReservaService, ReservaService>();
+builder.Services.AddScoped<IPagoService, PagoService>();
 builder.Services.AddHttpClient<ICulqiClient, CulqiClient>((sp, c) =>
 {
     var settings = sp.GetRequiredService<IOptions<CulqiSettings>>().Value;
