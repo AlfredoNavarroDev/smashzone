@@ -195,8 +195,10 @@ Los 3 aceptan `desde`/`hasta` opcionales (query params, `DateTime`).
 `400` si `desde > hasta`. Sin filtro, agregan sobre todo el histórico.
 Fechas (`desde`, `hasta`, y `hora` en `horas-pico`) son UTC — el
 servidor no hace conversión de zona horaria, el frontend debe ajustar
-a hora local si corresponde. `hasta` incluye el día completo: si se
-manda solo fecha (sin hora), cubre hasta las 23:59:59.999 de ese día.
+a hora local si corresponde. `hasta` siempre cubre el día completo:
+el servidor ignora la hora que venga en `hasta` y filtra hasta las
+23:59:59.999 de esa fecha (ej. `hasta=2026-01-15T10:00:00` incluye
+todo el 15 de enero, no solo hasta las 10am).
 Los 3 reportes solo devuelven los grupos con datos — meses/horas/
 paquetes sin actividad no aparecen con total cero; el frontend debe
 rellenar los huecos si grafica un eje continuo.

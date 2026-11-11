@@ -19,7 +19,7 @@ public class ReportesService(SmashZoneDbContext db) : IReportesService
         ValidarRango(desde, hasta);
         var q = db.Pagos.AsNoTracking().Where(p => p.Exitoso);
         if (desde is not null) q = q.Where(p => p.FechaPago >= desde);
-        if (hasta is not null) q = q.Where(p => p.FechaPago < hasta.Value.Date.AddDays(1));
+        if (hasta is not null) q = q.Where(p => p.FechaPago < FinDeRango(hasta.Value));
 
         var proyectado = q.Select(p => new { Anio = p.FechaPago!.Value.Year, Mes = p.FechaPago!.Value.Month, p.Monto });
 
@@ -57,7 +57,7 @@ public class ReportesService(SmashZoneDbContext db) : IReportesService
     {
         var q = db.Reservas.AsNoTracking().Where(r => r.IdEstadoNavigation.Nombre != ReservaService.EstadoCancelada);
         if (desde is not null) q = q.Where(r => r.FechaHoraInicio >= desde);
-        if (hasta is not null) q = q.Where(r => r.FechaHoraInicio < hasta.Value.Date.AddDays(1));
+        if (hasta is not null) q = q.Where(r => r.FechaHoraInicio < FinDeRango(hasta.Value));
         return q;
     }
 
@@ -66,4 +66,6 @@ public class ReportesService(SmashZoneDbContext db) : IReportesService
         if (desde is not null && hasta is not null && desde > hasta)
             throw new ReglaNegocioException("La fecha 'desde' no puede ser posterior a 'hasta'.");
     }
+
+    private static DateTime FinDeRango(DateTime hasta) => hasta.Date.AddDays(1);
 }
