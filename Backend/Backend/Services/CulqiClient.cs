@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 
@@ -23,7 +24,10 @@ public class CulqiClient(HttpClient http) : ICulqiClient
             return new ResultadoCargoCulqi(true, cargo?.Id, null);
         }
 
-        if ((int)respuesta.StatusCode is >= 400 and < 500)
+        // Solo 402 es un rechazo de tarjeta en Culqi. El resto de 4xx (401 key inválida,
+        // 404 endpoint equivocado, 422 request mal formado) son fallos de configuración:
+        // reportarlos como "tarjeta rechazada" mentiría al cliente y ensuciaría Pagos.
+        if (respuesta.StatusCode == HttpStatusCode.PaymentRequired)
         {
             var error = await respuesta.Content.ReadFromJsonAsync<CulqiErrorRespuesta>();
             return new ResultadoCargoCulqi(false, null, error?.UserMessage ?? "El pago fue rechazado por la pasarela.");

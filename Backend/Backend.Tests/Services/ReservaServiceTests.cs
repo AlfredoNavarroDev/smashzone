@@ -157,6 +157,24 @@ public class ReservaServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CambiarEstado_SinEstadosTrackeados_DevuelveElEstadoNuevoEnElDTO()
+    {
+        var cliente = _t.AddUsuario("c@x.com");
+        var sala = _t.AddSala("Sala A");
+        var paquete = _t.AddPaquete("Paquete A");
+        var creada = await _sut.CrearAsync(Dto(sala, paquete), cliente.Id, false);
+
+        // El fixture deja los 5 EstadosReserva trackeados desde su constructor, lo que
+        // enmascara una respuesta construida sobre la entidad en memoria: al limpiar el
+        // tracker, el DTO solo puede traer el estado correcto si el servicio recarga.
+        _t.Db.ChangeTracker.Clear();
+
+        var dto = await _sut.CambiarEstadoAsync(creada.Id, "Cancelada", cliente.Id, actorEsStaffOAdmin: false);
+
+        Assert.Equal("Cancelada", dto.Estado);
+    }
+
+    [Fact]
     public async Task CambiarEstado_ClienteCancelaReservaAjena_LanzaNoEncontrado()
     {
         var cliente = _t.AddUsuario("c@x.com");
@@ -209,6 +227,19 @@ public class ReservaServiceTests : IDisposable
 
         await Assert.ThrowsAsync<ReglaNegocioException>(() =>
             _sut.CambiarEstadoAsync(reserva.Id, "Cancelada", staff.Id, actorEsStaffOAdmin: true));
+    }
+
+    [Fact]
+    public async Task AplicarConfirmacionPorPago_ReservaNoPendiente_LanzaReglaNegocio()
+    {
+        var cliente = _t.AddUsuario("c@x.com");
+        var sala = _t.AddSala("Sala A");
+        var paquete = _t.AddPaquete("Paquete A");
+        var reserva = _t.AddReserva(cliente, sala, paquete, estado: "Confirmada");
+
+        // El método es público en IReservaService: no puede depender de que el llamador valide.
+        await Assert.ThrowsAsync<ReglaNegocioException>(() => _sut.AplicarConfirmacionPorPagoAsync(reserva));
+        Assert.Empty(_t.Db.HistorialEstadosReservas);
     }
 
     [Fact]

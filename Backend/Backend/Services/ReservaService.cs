@@ -163,7 +163,9 @@ public class ReservaService(SmashZoneDbContext db, IMapper mapper, TimeProvider 
             IdUsuarioCambio = actorEsStaffOAdmin ? actorId : null, FechaCambio = Ahora
         });
         await db.SaveChangesAsync();
-        return mapper.Map<ReservaDetalleDTO>(reserva);
+        // Recarga igual que CrearAsync: EstadosAsync() consulta AsNoTracking, así que el
+        // nuevo principal no entra al identity map y IdEstadoNavigation quedaría obsoleto.
+        return mapper.Map<ReservaDetalleDTO>(await CargarConEstado(id));
     }
 
     public async Task<List<HistorialEstadoDTO>> HistorialAsync(Guid id)
@@ -181,7 +183,17 @@ public class ReservaService(SmashZoneDbContext db, IMapper mapper, TimeProvider 
 
     public async Task AplicarConfirmacionPorPagoAsync(Reserva reserva)
     {
-        var idConfirmada = (await EstadosAsync())[EstadoConfirmada];
+        var estados = await EstadosAsync();
+
+        // Guarda defensiva propia: el invariante "la reserva está Pendiente" no puede
+        // depender solo de que el llamador lo haya verificado. El nombre se resuelve por
+        // Id contra el catálogo para no asumir que IdEstadoNavigation venga cargada.
+        var estadoActual = estados.FirstOrDefault(e => e.Value == reserva.IdEstado).Key;
+        if (estadoActual != EstadoPendiente)
+            throw new ReglaNegocioException(
+                $"Solo una reserva '{EstadoPendiente}' puede confirmarse por pago (actual: '{estadoActual ?? "desconocido"}').");
+
+        var idConfirmada = estados[EstadoConfirmada];
         var idAnterior = reserva.IdEstado;
         reserva.IdEstado = idConfirmada;
         db.HistorialEstadosReservas.Add(new HistorialEstadosReserva

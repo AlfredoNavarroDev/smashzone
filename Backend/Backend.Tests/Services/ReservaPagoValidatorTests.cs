@@ -46,4 +46,14 @@ public class ReservaPagoValidatorTests
     [Fact]
     public void CrearPago_Valido_Pasa() =>
         Assert.True(new CrearPagoValidator().Validate(new CrearPagoDTO { IdMetodoPago = 1 }).IsValid);
+
+    [Fact]
+    public void CrearPago_TransaccionRefDemasiadoLarga_Falla() =>
+        Assert.False(new CrearPagoValidator()
+            .Validate(new CrearPagoDTO { IdMetodoPago = 2, TransaccionRef = new string('x', 101) }).IsValid);
+
+    [Fact]
+    public void CrearPago_TransaccionRefEnElLimite_Pasa() =>
+        Assert.True(new CrearPagoValidator()
+            .Validate(new CrearPagoDTO { IdMetodoPago = 2, TransaccionRef = new string('x', 100) }).IsValid);
 }
