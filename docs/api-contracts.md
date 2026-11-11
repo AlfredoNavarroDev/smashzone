@@ -110,20 +110,52 @@ este bloque.
 
 ## Bloque 3 — Core transaccional
 
+Todos los endpoints requieren `Authorization: Bearer <jwt>`. Un Cliente
+solo ve/opera sus propias reservas — `GET`/`PUT estado` sobre una
+reserva ajena devuelve `404` (no `403`, para no filtrar su existencia).
+
 ### `POST /api/reservas`
+Cliente (reserva para sí), Staff o Admin (`IdCliente` opcional, reserva
+a nombre de otro usuario — ignorado si el actor es Cliente).
 Request (`CrearReservaDTO`):
 ```json
-{
-  "salaId": 1,
-  "paqueteId": 2,
-  "fechaHoraInicio": "2026-12-10T16:00:00",
-  "extras": [{ "itemId": 5, "cantidad": 2 }]
-}
+{ "idSala": 1, "idPaquete": 2, "fechaHoraInicio": "2026-12-10T16:00:00",
+  "numParticipantes": 4, "notasEspeciales": null,
+  "extras": [{ "idItemExtra": 5, "cantidad": 2 }] }
 ```
-Response `201 Created` (`ReservaDetalleDTO`).
-Response `409 Conflict` si hay solapamiento de horario en la sala.
+`fechaHoraFin` se calcula server-side (`fechaHoraInicio + Paquete.DuracionMinutos`),
+no se manda. Response `201` (`ReservaDetalleDTO`). `400` si sala/paquete
+inactivos, fecha pasada, o supera cupo. `404` si sala/paquete/ítem extra
+no existen. `409` si hay solapamiento de horario en la sala o stock
+insuficiente de algún extra.
 
-_A completar: `POST /api/pagos`, `PUT /api/reservas/{id}/estado`._
+### `GET /api/reservas/{id}` · `GET /api/reservas?estado=`
+Cliente ve solo las propias; Staff/Admin ven todas, filtro opcional por
+`estado` (`Pendiente`/`Confirmada`/`EnProceso`/`Completada`/`Cancelada`).
+
+### `PUT /api/reservas/{id}/estado`
+Request: `{ "nuevoEstado": "Cancelada" }`. Transiciones válidas:
+`Pendiente|Confirmada → Cancelada` (cliente dueño o Staff/Admin),
+`Confirmada → EnProceso` y `EnProceso → Completada` (solo Staff/Admin).
+`Confirmada` **no** es un destino válido aquí (solo vía pago exitoso).
+`400` si la transición no es válida o la reserva ya está en estado
+terminal. Al cancelar, repone el stock de los extras consumidos.
+
+### `GET /api/reservas/{id}/historial`
+`[Authorize(Roles = "Admin,Staff")]`. Devuelve `HistorialEstadoDTO[]`
+con la línea de tiempo completa de cambios de estado.
+
+### `POST /api/pagos`
+Request (`CrearPagoDTO`): `{ "idReserva": "guid", "idMetodoPago": 1,
+"culqiToken": "tkn_..." }` para `Tarjeta de Crédito/Débito` (vía Culqi:
+el resultado lo decide el gateway), o `{ "idReserva": "guid",
+"idMetodoPago": 2, "exitoso": true, "transaccionRef": "..." }` para
+`Transferencia Bancaria`/`Efectivo` (solo Staff/Admin, confirman a
+mano). `monto` nunca lo manda el cliente — el servidor lo fija como
+`MontoPaquete + MontoExtras` de la reserva. La reserva debe estar
+`Pendiente` — `409` si no. Pago exitoso confirma la reserva
+(`Pendiente → Confirmada`) en la misma operación. Response `201`
+(`VoucherDTO`). `400` si tarjeta rechazada por Culqi o falta el token.
 
 ## Bloque 4 — Reportes
 
