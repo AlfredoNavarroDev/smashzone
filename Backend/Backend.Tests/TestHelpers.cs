@@ -4,6 +4,7 @@ using Backend.Configuration;
 using Backend.Data;
 using Backend.Mapping;
 using Backend.Models;
+using Backend.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -27,6 +28,18 @@ public sealed class FakeTime : TimeProvider
 {
     public DateTimeOffset Now { get; set; } = new(2026, 11, 9, 12, 0, 0, TimeSpan.Zero);
     public override DateTimeOffset GetUtcNow() => Now;
+}
+
+public sealed class FakeCulqiClient : ICulqiClient
+{
+    public bool ProximoExitoso { get; set; } = true;
+    public string? ProximoMensaje { get; set; }
+    public string ProximaReferencia { get; set; } = "chr_test_123";
+
+    public Task<ResultadoCargoCulqi> CrearCargoAsync(string token, int montoCentimos, string email) =>
+        Task.FromResult(ProximoExitoso
+            ? new ResultadoCargoCulqi(true, ProximaReferencia, null)
+            : new ResultadoCargoCulqi(false, null, ProximoMensaje ?? "Tarjeta rechazada."));
 }
 
 /// <summary>BD SQLite en memoria con los roles semilla (1=Admin, 2=Staff, 3=Cliente).</summary>
@@ -61,10 +74,22 @@ public sealed class TestDb : IDisposable
             new Role { Id = 2, Nombre = "Staff" },
             new Role { Id = 3, Nombre = "Cliente" });
         Db.SaveChanges();
+        Db.EstadosReservas.AddRange(
+            new EstadosReserva { Id = 1, Nombre = "Pendiente" },
+            new EstadosReserva { Id = 2, Nombre = "Confirmada" },
+            new EstadosReserva { Id = 3, Nombre = "EnProceso" },
+            new EstadosReserva { Id = 4, Nombre = "Completada" },
+            new EstadosReserva { Id = 5, Nombre = "Cancelada" });
+        Db.MetodosPagos.AddRange(
+            new MetodosPago { Id = 1, Nombre = "Tarjeta de Crédito/Débito" },
+            new MetodosPago { Id = 2, Nombre = "Transferencia Bancaria" },
+            new MetodosPago { Id = 3, Nombre = "Efectivo" });
+        Db.SaveChanges();
         Mapper = new MapperConfiguration(c =>
         {
             c.AddProfile<UsuarioProfile>();
             c.AddProfile<CatalogoProfile>();
+            c.AddProfile<ReservaProfile>();
         }, NullLoggerFactory.Instance).CreateMapper();
     }
 
@@ -108,6 +133,24 @@ public sealed class TestDb : IDisposable
         Db.ItemsExtras.Add(i);
         Db.SaveChanges();
         return i;
+    }
+
+    public Reserva AddReserva(Usuario cliente, Sala sala, Paquete paquete, string estado = "Pendiente",
+        DateTime? inicio = null, int participantes = 2)
+    {
+        var idEstado = Db.EstadosReservas.Single(e => e.Nombre == estado).Id;
+        var fechaInicio = inicio ?? Time.Now.UtcDateTime.AddDays(1);
+        var r = new Reserva
+        {
+            Id = Guid.NewGuid(), IdCliente = cliente.Id, IdSala = sala.Id, IdPaquete = paquete.Id,
+            IdEstado = idEstado, FechaHoraInicio = fechaInicio,
+            FechaHoraFin = fechaInicio.AddMinutes(paquete.DuracionMinutos),
+            NumParticipantes = participantes, MontoPaquete = paquete.Precio, MontoExtras = 0,
+            FechaCreacion = Time.Now.UtcDateTime
+        };
+        Db.Reservas.Add(r);
+        Db.SaveChanges();
+        return r;
     }
 
     public void Dispose() { Db.Dispose(); _conn.Dispose(); }
