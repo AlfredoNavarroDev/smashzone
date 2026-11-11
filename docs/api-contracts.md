@@ -193,6 +193,13 @@ Todos los endpoints requieren `Authorization: Bearer <jwt>` y rol
 `Admin` (`[Authorize(Roles = "Admin")]`) — Staff no tiene acceso.
 Los 3 aceptan `desde`/`hasta` opcionales (query params, `DateTime`).
 `400` si `desde > hasta`. Sin filtro, agregan sobre todo el histórico.
+Fechas (`desde`, `hasta`, y `hora` en `horas-pico`) son UTC — el
+servidor no hace conversión de zona horaria, el frontend debe ajustar
+a hora local si corresponde. `hasta` incluye el día completo: si se
+manda solo fecha (sin hora), cubre hasta las 23:59:59.999 de ese día.
+Los 3 reportes solo devuelven los grupos con datos — meses/horas/
+paquetes sin actividad no aparecen con total cero; el frontend debe
+rellenar los huecos si grafica un eje continuo.
 
 ### `GET /api/reportes/ingresos-por-mes?desde=&hasta=`
 Filtra por `Pago.FechaPago`. Suma `Monto` de pagos con `Exitoso = true`,

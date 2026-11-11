@@ -1,5 +1,6 @@
 using Backend.Data;
 using Backend.DTOs;
+using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services;
@@ -18,7 +19,7 @@ public class ReportesService(SmashZoneDbContext db) : IReportesService
         ValidarRango(desde, hasta);
         var q = db.Pagos.AsNoTracking().Where(p => p.Exitoso);
         if (desde is not null) q = q.Where(p => p.FechaPago >= desde);
-        if (hasta is not null) q = q.Where(p => p.FechaPago <= hasta);
+        if (hasta is not null) q = q.Where(p => p.FechaPago < hasta.Value.Date.AddDays(1));
 
         var proyectado = q.Select(p => new { Anio = p.FechaPago!.Value.Year, Mes = p.FechaPago!.Value.Month, p.Monto });
 
@@ -33,11 +34,7 @@ public class ReportesService(SmashZoneDbContext db) : IReportesService
     public async Task<List<PaqueteDemandaDTO>> PaqueteMasDemandadoAsync(DateTime? desde, DateTime? hasta)
     {
         ValidarRango(desde, hasta);
-        var q = db.Reservas.AsNoTracking().Where(r => r.IdEstadoNavigation.Nombre != "Cancelada");
-        if (desde is not null) q = q.Where(r => r.FechaHoraInicio >= desde);
-        if (hasta is not null) q = q.Where(r => r.FechaHoraInicio <= hasta);
-
-        var grupos = await q
+        var grupos = await ReservasNoCanceladas(desde, hasta)
             .GroupBy(r => new { r.IdPaquete, Nombre = r.IdPaqueteNavigation.Nombre })
             .Select(g => new PaqueteDemandaDTO(g.Key.IdPaquete, g.Key.Nombre, g.Count()))
             .ToListAsync();
@@ -48,16 +45,20 @@ public class ReportesService(SmashZoneDbContext db) : IReportesService
     public async Task<List<HoraPicoDTO>> HorasPicoAsync(DateTime? desde, DateTime? hasta)
     {
         ValidarRango(desde, hasta);
-        var q = db.Reservas.AsNoTracking().Where(r => r.IdEstadoNavigation.Nombre != "Cancelada");
-        if (desde is not null) q = q.Where(r => r.FechaHoraInicio >= desde);
-        if (hasta is not null) q = q.Where(r => r.FechaHoraInicio <= hasta);
-
-        var grupos = await q
+        var grupos = await ReservasNoCanceladas(desde, hasta)
             .GroupBy(r => r.FechaHoraInicio.Hour)
             .Select(g => new HoraPicoDTO(g.Key, g.Count()))
             .ToListAsync();
 
         return grupos.OrderByDescending(g => g.TotalReservas).ToList();
+    }
+
+    private IQueryable<Reserva> ReservasNoCanceladas(DateTime? desde, DateTime? hasta)
+    {
+        var q = db.Reservas.AsNoTracking().Where(r => r.IdEstadoNavigation.Nombre != ReservaService.EstadoCancelada);
+        if (desde is not null) q = q.Where(r => r.FechaHoraInicio >= desde);
+        if (hasta is not null) q = q.Where(r => r.FechaHoraInicio < hasta.Value.Date.AddDays(1));
+        return q;
     }
 
     private static void ValidarRango(DateTime? desde, DateTime? hasta)

@@ -115,4 +115,36 @@ public class ReportesServiceTests : IDisposable
     public async Task HorasPico_DesdeMayorQueHasta_LanzaReglaNegocio() =>
         await Assert.ThrowsAsync<ReglaNegocioException>(() =>
             _sut.HorasPicoAsync(new DateTime(2026, 5, 1), new DateTime(2026, 1, 1)));
+
+    [Fact]
+    public async Task IngresosPorMes_HastaEsFechaSola_IncluyeTodoEseDia()
+    {
+        var cliente = _t.AddUsuario("c@x.com");
+        var sala = _t.AddSala("Sala A");
+        var paquete = _t.AddPaquete("Paquete A");
+        var reserva = _t.AddReserva(cliente, sala, paquete);
+        var idTarjeta = _t.Db.MetodosPagos.Single(m => m.Nombre == "Tarjeta de Crédito/Débito").Id;
+
+        _t.AddPago(reserva, idTarjeta, 100, fechaPago: new DateTime(2026, 1, 31, 23, 30, 0));
+
+        var reporte = await _sut.IngresosPorMesAsync(null, new DateTime(2026, 1, 31));
+
+        Assert.Single(reporte);
+        Assert.Equal(100m, reporte[0].TotalIngresos);
+    }
+
+    [Fact]
+    public async Task PaqueteMasDemandado_HastaEsFechaSola_IncluyeTodoEseDia()
+    {
+        var cliente = _t.AddUsuario("c@x.com");
+        var sala = _t.AddSala("Sala A");
+        var paquete = _t.AddPaquete("Paquete A");
+
+        _t.AddReserva(cliente, sala, paquete, inicio: new DateTime(2026, 6, 10, 23, 45, 0));
+
+        var reporte = await _sut.PaqueteMasDemandadoAsync(null, new DateTime(2026, 6, 10));
+
+        Assert.Single(reporte);
+        Assert.Equal(1, reporte[0].TotalReservas);
+    }
 }
