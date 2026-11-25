@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { Button, Card, Field } from '../../components/ui'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
+import './Login.css'
+import HammerTear from '../../components/ui/HammerTear'
 
 export default function Login() {
   const { login, isAuthenticated, usuario } = useAuth()
@@ -12,7 +13,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
 
-  if (isAuthenticated && usuario) return <Navigate to={usuario.rol === 'Admin' ? '/admin/usuarios' : '/'} replace />
+  if (isAuthenticated && usuario) return <Navigate to={usuario.rol === 'Admin' ? '/admin' : '/perfil'} replace />
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -21,7 +22,7 @@ export default function Login() {
     try {
       const u = await login(email, password)
       const from = (location.state as { from?: string } | null)?.from
-      navigate(from ?? (u.rol === 'Admin' ? '/admin/usuarios' : '/'), { replace: true })
+      navigate(from ?? (u.rol === 'Admin' ? '/admin' : '/perfil'), { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión.')
     } finally {
@@ -30,20 +31,28 @@ export default function Login() {
   }
 
   return (
-    <div className="auth-page">
-      <Card title="Iniciar sesión" className="auth-card">
-        <form onSubmit={onSubmit} className="form">
-          <Field label="Email">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-          </Field>
-          <Field label="Contraseña">
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
-          </Field>
-          {error && <p role="alert" className="form-error">{error}</p>}
-          <Button type="submit" disabled={cargando}>{cargando ? 'Ingresando…' : 'Ingresar'}</Button>
-        </form>
-        <p className="muted">¿No tienes cuenta? <Link to="/registro">Regístrate</Link></p>
-      </Card>
+    <div className="login-scene">
+      <HammerTear />
+      <header className="login-brand">
+        <img src="/images/icon/image.png" alt="SmashZone" />
+      </header>
+      <main className="login-content">
+        <div className="login-panel">
+          <h1>Iniciar sesión</h1>
+          <form onSubmit={onSubmit} className="login-form">
+            <label className="login-field">
+              <span>Email</span>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" placeholder="tu@correo.com" />
+            </label>
+            <label className="login-field">
+              <span>Contraseña</span>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" placeholder="Tu contraseña" />
+            </label>
+            {error && <p role="alert" className="login-error">{error}</p>}
+            <button className="login-submit" type="submit" disabled={cargando}><span>{cargando ? 'Ingresando…' : 'Ingresar'}</span></button>
+          </form>
+        </div>
+      </main>
     </div>
   )
 }

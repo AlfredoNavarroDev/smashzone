@@ -1,0 +1,31 @@
+.shard-icon-link {
+  position: absolute;
+  inset: 0;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #ff741f;
+  isolation: isolate;
+}
+.shard-icon-link > svg:not(.shard-icon-arrow) {
+  position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;
+}
+.shard-icon-wash { position: absolute; inset: 0; background: #ff5900; opacity: 0; transition: opacity .25s; pointer-events: none; }
+.shard-icon-arrow { position: absolute; width: 32px; height: 32px; pointer-events: none; transition: transform .25s, color .25s; }
+.shard-icon-link[data-direction='right'] .shard-icon-arrow { rotate: 180deg; }
+.shard-icon-link:is(:hover,:focus-visible) { color: #fff; }
+.shard-icon-link:is(:hover,:focus-visible) .shard-icon-wash { opacity: .18; }
+.shard-icon-link:is(:hover,:focus-visible) .shard-icon-arrow { transform: translateX(-3px); }
+.shard-icon-link:focus-visible .shard-icon-wash { opacity: .3; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .shard-icon-link:hover { animation: shard-tremor 320ms ease-out; }
+}
+@keyframes shard-tremor {
+  0%, 100% { translate: 0 0; }
+  16% { translate: -2px 1px; }
+  34% { translate: 2px -1px; }
+  52% { translate: -1.5px 0; }
+  72% { translate: 1px 0; }
+}
+@media (prefers-reduced-motion: reduce) { .shard-icon-wash, .shard-icon-arrow { transition: none; } }

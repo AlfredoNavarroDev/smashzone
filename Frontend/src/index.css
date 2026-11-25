@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&display=swap');
+
 :root {
   --bg: #f6f5f9;
   --surface: #ffffff;
@@ -99,3 +101,10 @@ th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-ali
 .chart { width: 100%; height: auto; }
 .chart-bar { fill: var(--accent); }
 .chart-label { fill: var(--muted); font-size: 11px; }
+.smash-glass-header { border-radius: 20px; border: 1px solid #37302b; margin-bottom: 22px; }
+.smash-glass-header .bbd2-bg { background: radial-gradient(ellipse at 10% 10%, #943c202b, transparent 65%), #090a0c; }
+.smash-glass-header .bbd2-credit { opacity: .65; }
+.smash-glass-header .bbd2-sound:focus-visible { outline: 2px solid #ffab73; border-radius: 8px; }
+.smash-glass-header .bbd2-sound { background: #171717bb; border-radius: 8px; }
+.smash-glass-header .bbd2-sound::after { content: 'Sonido'; display: block; color: #eee; font-size: 10px; }
+.smash-glass-header.bbd2--portrait .bbd2-title, .smash-glass-header.bbd2--portrait .bbd2-slice { font-size: clamp(28px, 10cqw, 70px); }
