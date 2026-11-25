@@ -25,7 +25,7 @@ export default function Registro() {
         password: form.password, telefono: form.telefono || undefined,
       })
       await login(form.email, form.password)
-      navigate('/', { replace: true })
+      navigate('/perfil', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo completar el registro.')
     } finally {
