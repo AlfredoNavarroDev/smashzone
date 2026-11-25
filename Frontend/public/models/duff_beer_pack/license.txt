@@ -1,0 +1,11 @@
+Model Information:
+* title:	Duff Beer Pack
+* source:	https://sketchfab.com/3d-models/duff-beer-pack-1fe53440f275486e8da9e54f062f2f7e
+* author:	quentin.cdt (https://sketchfab.com/quentin.cdt)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Duff Beer Pack" (https://sketchfab.com/3d-models/duff-beer-pack-1fe53440f275486e8da9e54f062f2f7e) by quentin.cdt (https://sketchfab.com/quentin.cdt) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

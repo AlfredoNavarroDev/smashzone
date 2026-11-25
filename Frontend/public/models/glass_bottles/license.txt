@@ -1,0 +1,11 @@
+Model Information:
+* title:	Glass Bottles
+* source:	https://sketchfab.com/3d-models/glass-bottles-334377879cb4475d9a4720a2f7c4cf55
+* author:	FrodoUndead (https://sketchfab.com/FrodoUndead)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Glass Bottles" (https://sketchfab.com/3d-models/glass-bottles-334377879cb4475d9a4720a2f7c4cf55) by FrodoUndead (https://sketchfab.com/FrodoUndead) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
