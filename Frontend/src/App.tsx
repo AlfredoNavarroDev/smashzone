@@ -23,6 +23,7 @@ import {
   VoucherDTO,
 } from './types/api.types';
 import { ApiDomainError, smashzoneApi } from './api/smashzoneApi';
+import DashboardNegocio from './pages/admin/DashboardNegocio';
 import { Preloader } from './components/keltic/Preloader';
 import {
   ShatterCanvas,
@@ -103,6 +104,7 @@ export const App: React.FC = () => {
   // Modales
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
+  const [adminTab, setAdminTab] = useState<'negocio' | 'sesiones'>('negocio');
   const [bannerMessage, setBannerMessage] = useState<{
     type: 'error' | 'success';
     text: string;
@@ -1619,7 +1621,7 @@ export const App: React.FC = () => {
         >
           <div
             className="keltic-modal"
-            style={{ maxWidth: 960, width: '94%', maxHeight: '88vh', overflowY: 'auto' }}
+            style={{ maxWidth: 1120, width: '96%', maxHeight: '90vh', overflowY: 'auto' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div
@@ -1650,130 +1652,169 @@ export const App: React.FC = () => {
               </button>
             </div>
 
-            {/* TABLA DE OPERACIONES EN LOCAL (TODAS LAS RESERVAS) */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div
+            {/* PESTAÑAS DE CONTROL ADMINISTRATIVO */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '0.6rem',
+                marginBottom: '1.5rem',
+                borderBottom: '1px solid var(--border-hairline)',
+                paddingBottom: '0.8rem',
+                flexWrap: 'wrap',
+              }}
+            >
+              <button
+                type="button"
                 style={{
+                  background: adminTab === 'negocio' ? 'var(--accent-ember)' : 'rgba(255, 255, 255, 0.05)',
+                  color: adminTab === 'negocio' ? '#fff' : 'var(--text-secondary)',
+                  border: `1px solid ${adminTab === 'negocio' ? 'var(--accent-ember)' : 'var(--border-hairline)'}`,
+                  padding: '0.45rem 1rem',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  borderRadius: 2,
                   display: 'flex',
-                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  marginBottom: '0.6rem',
+                  gap: '0.4rem',
+                  transition: 'all 0.2s ease',
                 }}
+                onClick={() => setAdminTab('negocio')}
               >
-                <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>CONTROL DE BÓVEDAS Y SESIONES EN LOCAL</span>
-                <span className="keltic-badge badge-rage">{reservas.length} SESIONES TOTALES</span>
-              </div>
-              <div className="keltic-table-wrap">
-                <table className="keltic-table">
-                  <thead>
-                    <tr>
-                      <th>Cliente & Contacto</th>
-                      <th>Cámara & Paquete</th>
-                      <th>Horario</th>
-                      <th>Total</th>
-                      <th>Estado</th>
-                      <th>Gestión de Sala</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reservas.map((r) => (
-                      <tr key={r.id}>
-                        <td>
-                          <strong>{r.nombreCliente}</strong>
-                          <div style={{ fontSize: '0.66rem', color: 'var(--text-secondary)' }}>
-                            #{r.id.slice(0, 8)}
-                          </div>
-                        </td>
-                        <td>
-                          <strong>{r.nombreSala}</strong> ({r.nombrePaquete})
-                        </td>
-                        <td style={{ fontFamily: 'var(--font-mono)' }}>
-                          {new Date(r.fechaHoraInicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </td>
-                        <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-volt)', fontWeight: 700 }}>
-                          S/ {r.montoTotal.toFixed(2)}
-                        </td>
-                        <td>
-                          <span className="keltic-badge badge-volt">{r.estado}</span>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                            {r.estado === 'Pendiente' && (
-                              <button
-                                type="button"
-                                className="btn-keltic-primary"
-                                style={{ padding: '0.25rem 0.55rem', fontSize: '0.65rem' }}
-                                onClick={async () => {
-                                  await smashzoneApi.procesarPago(
-                                    { idReserva: r.id, idMetodoPago: 3, exitoso: true },
-                                    currentUser,
-                                    token
-                                  );
-                                  await cargarTodo();
-                                }}
-                              >
-                                Cobrar Caja
-                              </button>
-                            )}
-                            {r.estado === 'Confirmada' && (
-                              <button
-                                type="button"
-                                className="btn-keltic-primary"
-                                style={{ padding: '0.25rem 0.55rem', fontSize: '0.65rem' }}
-                                onClick={async () => {
-                                  await smashzoneApi.cambiarEstadoReserva(r.id, 'EnProceso', currentUser, token);
-                                  await cargarTodo();
-                                }}
-                              >
-                                Iniciar Sala
-                              </button>
-                            )}
-                            {r.estado === 'EnProceso' && (
-                              <button
-                                type="button"
-                                className="btn-keltic-primary"
-                                style={{
-                                  padding: '0.25rem 0.55rem',
-                                  fontSize: '0.65rem',
-                                  background: 'var(--accent-volt)',
-                                  color: '#000',
-                                }}
-                                onClick={async () => {
-                                  await smashzoneApi.cambiarEstadoReserva(r.id, 'Completada', currentUser, token);
-                                  await cargarTodo();
-                                }}
-                              >
-                                Finalizar
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                📊 DASHBOARD ANALÍTICAS & NEGOCIO
+              </button>
+              <button
+                type="button"
+                style={{
+                  background: adminTab === 'sesiones' ? 'var(--accent-ember)' : 'rgba(255, 255, 255, 0.05)',
+                  color: adminTab === 'sesiones' ? '#fff' : 'var(--text-secondary)',
+                  border: `1px solid ${adminTab === 'sesiones' ? 'var(--accent-ember)' : 'var(--border-hairline)'}`,
+                  padding: '0.45rem 1rem',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  transition: 'all 0.2s ease',
+                }}
+                onClick={() => setAdminTab('sesiones')}
+              >
+                🛡️ CONTROL DE BÓVEDAS EN VIVO ({reservas.length})
+              </button>
             </div>
 
-            {currentUser.rol === 'Admin' && (
-              <div
-                style={{
-                  marginTop: '1.2rem',
-                  padding: '1.2rem',
-                  background: 'rgba(255, 42, 42, 0.05)',
-                  border: '1px solid var(--border-hairline)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <strong style={{ display: 'block', fontSize: '0.92rem' }}>
-                      Dashboard Oficial de Analíticas y Negocio (Alexis / Bloque 4)
-                    </strong>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                      Módulo oficial con KPIs de facturación, curva mensual de ingresos, paquetes líderes y horas pico.
-                    </span>
-                  </div>
-                  <span className="keltic-badge badge-volt">OFICIAL // PRIVADO</span>
+            {/* VISTA 1: DASHBOARD DE NEGOCIO (ALEXIS / BLOQUE 4) */}
+            {adminTab === 'negocio' && (
+              <div className="teammate-dashboard-wrapper" style={{ minHeight: 400 }}>
+                <DashboardNegocio />
+              </div>
+            )}
+
+            {/* VISTA 2: TABLA DE OPERACIONES EN LOCAL (TODAS LAS RESERVAS) */}
+            {adminTab === 'sesiones' && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '0.6rem',
+                  }}
+                >
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>CONTROL DE BÓVEDAS Y SESIONES EN LOCAL</span>
+                  <span className="keltic-badge badge-rage">{reservas.length} SESIONES TOTALES</span>
+                </div>
+                <div className="keltic-table-wrap">
+                  <table className="keltic-table">
+                    <thead>
+                      <tr>
+                        <th>Cliente & Contacto</th>
+                        <th>Cámara & Paquete</th>
+                        <th>Horario</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th>Gestión de Sala</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reservas.map((r) => (
+                        <tr key={r.id}>
+                          <td>
+                            <strong>{r.nombreCliente}</strong>
+                            <div style={{ fontSize: '0.66rem', color: 'var(--text-secondary)' }}>
+                              #{r.id.slice(0, 8)}
+                            </div>
+                          </td>
+                          <td>
+                            <strong>{r.nombreSala}</strong> ({r.nombrePaquete})
+                          </td>
+                          <td style={{ fontFamily: 'var(--font-mono)' }}>
+                            {new Date(r.fechaHoraInicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-volt)', fontWeight: 700 }}>
+                            S/ {r.montoTotal.toFixed(2)}
+                          </td>
+                          <td>
+                            <span className="keltic-badge badge-volt">{r.estado}</span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                              {r.estado === 'Pendiente' && (
+                                <button
+                                  type="button"
+                                  className="btn-keltic-primary"
+                                  style={{ padding: '0.25rem 0.55rem', fontSize: '0.65rem' }}
+                                  onClick={async () => {
+                                    await smashzoneApi.procesarPago(
+                                      { idReserva: r.id, idMetodoPago: 3, exitoso: true },
+                                      currentUser,
+                                      token
+                                    );
+                                    await cargarTodo();
+                                  }}
+                                >
+                                  Cobrar Caja
+                                </button>
+                              )}
+                              {r.estado === 'Confirmada' && (
+                                <button
+                                  type="button"
+                                  className="btn-keltic-primary"
+                                  style={{ padding: '0.25rem 0.55rem', fontSize: '0.65rem' }}
+                                  onClick={async () => {
+                                    await smashzoneApi.cambiarEstadoReserva(r.id, 'EnProceso', currentUser, token);
+                                    await cargarTodo();
+                                  }}
+                                >
+                                  Iniciar Sala
+                                </button>
+                              )}
+                              {r.estado === 'EnProceso' && (
+                                <button
+                                  type="button"
+                                  className="btn-keltic-primary"
+                                  style={{
+                                    padding: '0.25rem 0.55rem',
+                                    fontSize: '0.65rem',
+                                    background: 'var(--accent-volt)',
+                                    color: '#000',
+                                  }}
+                                  onClick={async () => {
+                                    await smashzoneApi.cambiarEstadoReserva(r.id, 'Completada', currentUser, token);
+                                    await cargarTodo();
+                                  }}
+                                >
+                                  Finalizar
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
