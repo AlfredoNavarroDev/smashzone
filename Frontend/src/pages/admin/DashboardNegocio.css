@@ -123,7 +123,15 @@
   .negocio-card-heading { flex-wrap: wrap; }
 }
 
-.negocio-dashboard { grid-template-columns: minmax(0, 1fr) 260px; --panel: #151515; --line: #292929; --signal: #ff7b36; }
+.negocio-dashboard {
+  grid-template-columns: minmax(0, 1fr) clamp(280px, 24vw, 340px);
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  --panel: #151515;
+  --line: #292929;
+  --signal: #ff7b36;
+}
 .negocio-hero, .negocio-kpis, .negocio-error { grid-column: 1 / -1; }
 .negocio-hero { min-height: 178px; background: radial-gradient(ellipse at 85% 0%, #c54816 0%, #79270f 35%, #171313 78%); }
 .negocio-main-card { grid-column: 1; }
@@ -383,16 +391,16 @@
   pointer-events: none; overflow: visible; transform-origin: center;
 }
 .glass-mosaic-seams { position: absolute; inset: 0; width: 100%; pointer-events: none; z-index: -1; overflow: visible; }
-.negocio-dashboard .negocio-kpi { padding: 44px 16%; min-height: 210px; align-items: center; justify-content: center; text-align: center; }
-.negocio-dashboard .negocio-kpi small { margin-top: 12px; }
-.negocio-dashboard .negocio-main-card { padding: 55px 6% 50px; }
+.negocio-dashboard .negocio-kpi { padding: 22px 10%; min-height: 145px; align-items: center; justify-content: center; text-align: center; }
+.negocio-dashboard .negocio-kpi small { margin-top: 8px; }
+.negocio-dashboard .negocio-main-card { padding: 34px 5% 30px; }
 .negocio-dashboard .negocio-card-heading { align-items: center; justify-content: center; text-align: center; flex-wrap: wrap; }
 .negocio-dashboard .negocio-main-card .negocio-card-heading { justify-content: space-between; gap: 18px; }
 .negocio-dashboard #ingresos-titulo { position: relative; top: 12px; }
-.negocio-dashboard .negocio-profile { grid-row: 2; align-self: stretch; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 65px 16%; }
+.negocio-dashboard .negocio-profile { grid-row: 2; align-self: stretch; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 45px 12%; }
 .negocio-dashboard .negocio-profile h2 { font-size: 1.25rem; overflow-wrap: anywhere; }
 .negocio-dashboard .negocio-secondary-grid { gap: 0; grid-column: 1 / -1; }
-.negocio-dashboard .negocio-secondary-grid .negocio-card { padding: 55px 12%; min-height: 320px; }
+.negocio-dashboard .negocio-secondary-grid .negocio-card { padding: 32px 10%; min-height: 250px; }
 .negocio-dashboard .negocio-kpi:hover, .negocio-dashboard .negocio-secondary-grid .negocio-card:hover { transform: none; box-shadow: none; }
 .negocio-dashboard .metric-contenido { margin-left: 0; margin-right: 0; }
 .negocio-dashboard .metric-principal { padding-left: 0; text-align: center; align-items: center; }
@@ -424,8 +432,8 @@
   .negocio-dashboard .metric-grafico { margin-top: 12px; }
 }
 .negocio-dashboard .negocio-profile {
-  --account-fragment: clamp(124px, 11vw, 158px);
-  padding: 64px 30px calc(var(--account-fragment) + 20px) 60px;
+  --account-fragment: clamp(100px, 9vw, 130px);
+  padding: 44px 20px calc(var(--account-fragment) + 12px) 30px;
 }
 .negocio-profile-content { width: 100%; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .negocio-dashboard .negocio-profile h2 { margin: 22px 0 12px; font-size: clamp(1.45rem, 2.1vw, 1.85rem); line-height: 1.12; letter-spacing: -.04em; }

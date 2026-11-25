@@ -19,100 +19,81 @@ export default function Layout() {
   const { logout, hasRole, usuario } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const admin = hasRole('Admin') || hasRole('Staff')
-  const perfilAdmin = admin && pathname === '/perfil'
 
-  let activeIndex = -1
-  if (pathname === '/admin') activeIndex = 0
-  else if (pathname.startsWith('/admin/usuarios')) activeIndex = 1
+  // Siempre es admin si la ruta es /admin o si el rol es Admin/Staff
+  const admin = pathname.startsWith('/admin') || hasRole('Admin') || hasRole('Staff')
+  const perfilAdmin = pathname === '/perfil'
+
+  let activeIndex = 0
+  if (pathname.startsWith('/admin/usuarios')) activeIndex = 1
   else if (pathname.startsWith('/admin/sesiones')) activeIndex = 2
-  else if (pathname === '/perfil') activeIndex = 3
+  else if (pathname === '/admin') activeIndex = 0
+  else activeIndex = -1
 
   return (
-    <div className={`shell${admin ? ' shell-admin' : ' shell-client'}${perfilAdmin ? ' shell-profile' : ''}`}>
+    <div className={`shell shell-admin${perfilAdmin ? ' shell-profile' : ''}`}>
       {!perfilAdmin && (
         <header className="topbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
-            <NavLink to={admin ? '/admin' : '/perfil'} className="brand" aria-label="SmashZone">
+          {/* LADO IZQUIERDO: LOGO Y VOLVER A 3D */}
+          <div className="topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <NavLink to="/admin" className="brand" aria-label="SmashZone">
               <img className="brand-logo" src="/images/icon/image.png" alt="SmashZone" />
             </NavLink>
             <NavLink
               to="/"
-              className="btn-keltic-outline"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                fontSize: '0.72rem',
-                padding: '0.35rem 0.75rem',
-                color: 'var(--accent-volt)',
-                borderColor: 'rgba(230, 255, 42, 0.3)',
-                background: 'rgba(0, 0, 0, 0.4)',
-                textDecoration: 'none',
-              }}
+              className="btn-back-3d"
+              title="Volver a la experiencia inmersiva del mazo"
             >
               <NavIcon name="hammer" />
               <span>IR A SMASHZONE 3D</span>
             </NavLink>
           </div>
 
+          {/* CENTRO: PESTAÑAS FLOTANTES DE CRISTAL */}
           <nav
             aria-label="Navegación principal"
             className="shell-nav"
             style={
               {
                 '--nav-index': Math.max(0, activeIndex),
-                gridTemplateColumns: admin ? 'repeat(4, 135px)' : '160px',
               } as CSSProperties
             }
           >
-            {admin && (
-              <span
-                className="shell-nav-indicator"
-                data-visible={activeIndex >= 0}
-                style={{
-                  width: `${100 / 4}%`,
-                  left: `${(activeIndex * 100) / 4}%`,
-                  transition: 'left 0.3s ease',
-                }}
-                aria-hidden="true"
-              />
-            )}
-            {!admin && (
-              <NavLink to="/perfil">
-                <NavIcon name="profile" />
-                <span>Mi perfil</span>
-              </NavLink>
-            )}
-            {admin && (
-              <>
-                <NavLink to="/admin" end>
-                  <NavIcon name="dashboard" />
-                  <span>Finanzas</span>
-                </NavLink>
-                <NavLink to="/admin/usuarios">
-                  <NavIcon name="users" />
-                  <span>Usuarios</span>
-                </NavLink>
-                <NavLink to="/admin/sesiones">
-                  <NavIcon name="sessions" />
-                  <span>Bóvedas</span>
-                </NavLink>
-                <NavLink to="/perfil">
-                  <NavIcon name="profile" />
-                  <span>Mi Perfil</span>
-                </NavLink>
-              </>
-            )}
+            <span
+              className="shell-nav-indicator"
+              data-visible={activeIndex >= 0}
+              data-tab={activeIndex}
+              aria-hidden="true"
+            />
+            <NavLink to="/admin" end>
+              <NavIcon name="dashboard" />
+              <span>Panel admin</span>
+            </NavLink>
+            <NavLink to="/admin/usuarios">
+              <NavIcon name="users" />
+              <span>Usuarios</span>
+            </NavLink>
+            <NavLink to="/admin/sesiones">
+              <NavIcon name="sessions" />
+              <span>Bóvedas</span>
+            </NavLink>
           </nav>
 
-          <div className="topbar-user" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-            <span style={{ fontSize: '0.75rem', color: '#aaa' }}>
-              {usuario?.nombre} <strong style={{ color: 'var(--accent-volt)' }}>({usuario?.rol || 'Admin'})</strong>
-            </span>
+          {/* LADO DERECHO: PERFIL Y SALIR */}
+          <div className="topbar-user">
+            <NavLink to="/perfil" className="shell-account" title="Ver mi perfil">
+              <div className="shell-avatar">
+                <img src="/images/perfil/admin-warm.png" alt="Avatar" />
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <strong>{usuario?.nombre || 'Alexis'}</strong>
+                <small>{usuario?.rol || 'Admin'}</small>
+              </div>
+            </NavLink>
             <button
               className="shell-logout"
               type="button"
+              title="Cerrar sesión"
               onClick={() => {
                 logout()
                 navigate('/')
