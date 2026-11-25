@@ -7,17 +7,15 @@ import {
   CreditCard,
   Flame,
   Hammer,
+  Shield,
   UserCheck,
   Users,
   X,
 } from 'lucide-react';
 import {
-  AdminUsuarioDTO,
   EstadoReservaNombre,
-  IngresoMesDTO,
   ItemExtraDTO,
   PaqueteDTO,
-  PaqueteDemandaDTO,
   ReservaDetalleDTO,
   RolNombre,
   SalaDTO,
@@ -89,9 +87,9 @@ export const App: React.FC = () => {
     4: 1,
   });
 
-  // Sub-pestañas en el Capítulo 4 (Arsenal / Reservar / Sesiones / Admin)
+  // Sub-pestañas en el Capítulo 4 (100% enfocadas en el cliente)
   const [finalStageTab, setFinalStageTab] = useState<
-    'arsenal' | 'reservar' | 'sesiones' | 'admin'
+    'arsenal' | 'reservar' | 'mis-reservas'
   >('arsenal');
 
   // Reservas y Pagos
@@ -102,12 +100,9 @@ export const App: React.FC = () => {
   const [culqiModoSim, setCulqiModoSim] = useState<'ok' | 'declined'>('ok');
   const [voucherEmitido, setVoucherEmitido] = useState<VoucherDTO | null>(null);
 
-  // Reportes Admin
-  const [ingresosMes, setIngresosMes] = useState<IngresoMesDTO[]>([]);
-  const [paquetesDemanda, setPaquetesDemanda] = useState<PaqueteDemandaDTO[]>([]);
-  const [usuariosAdmin, setUsuariosAdmin] = useState<AdminUsuarioDTO[]>([]);
-
+  // Modales
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [bannerMessage, setBannerMessage] = useState<{
     type: 'error' | 'success';
     text: string;
@@ -168,16 +163,6 @@ export const App: React.FC = () => {
       setInventario(invData);
       setReservas(resData);
 
-      if (actor.rol === 'Admin') {
-        const [ing, dem, usrPag] = await Promise.all([
-          smashzoneApi.reporteIngresosPorMes(undefined, undefined, token),
-          smashzoneApi.reportePaqueteMasDemandado(undefined, undefined, token),
-          smashzoneApi.listarUsuariosAdmin({}, token),
-        ]);
-        setIngresosMes(ing);
-        setPaquetesDemanda(dem);
-        setUsuariosAdmin(usrPag.items);
-      }
     } catch (err) {
       if (err instanceof ApiDomainError) {
         setBannerMessage({ type: 'error', text: err.message });
@@ -196,9 +181,7 @@ export const App: React.FC = () => {
       const resp = await smashzoneApi.login(creds);
       setToken(resp.token);
       setCurrentUser(resp.usuario);
-      if (rol === 'Admin') setFinalStageTab('admin');
-      else if (rol === 'Staff') setFinalStageTab('sesiones');
-      else setFinalStageTab('reservar');
+      setFinalStageTab('reservar');
       scrollToProgress(0.92);
       triggerShatterBurst(window.innerWidth / 2, 90);
     } catch (err) {
@@ -487,7 +470,7 @@ export const App: React.FC = () => {
           </button>
           <button
             className={`nav-link-btn ${
-              scrollProgress >= 0.75 && finalStageTab !== 'arsenal'
+              scrollProgress >= 0.75 && finalStageTab === 'reservar'
                 ? 'active'
                 : ''
             }`}
@@ -498,28 +481,48 @@ export const App: React.FC = () => {
           >
             05 // Reservar ({desgloseCarrito.items.reduce((a, b) => a + b.cantidad, 0)})
           </button>
+          <button
+            className={`nav-link-btn ${
+              scrollProgress >= 0.75 && finalStageTab === 'mis-reservas'
+                ? 'active'
+                : ''
+            }`}
+            onClick={() => {
+              setFinalStageTab('mis-reservas');
+              scrollToProgress(0.92);
+            }}
+          >
+            06 // Mis Reservas
+          </button>
         </nav>
 
         <div className="navbar-actions">
-          <div className="role-switcher-pill">
-            {(['Cliente', 'Staff', 'Admin'] as RolNombre[]).map((r) => (
-              <button
-                key={r}
-                className={`role-btn ${currentUser.rol === r ? 'is-selected' : ''}`}
-                onClick={() => cambiarRolDemo(r)}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
+          {(currentUser.rol === 'Admin' || currentUser.rol === 'Staff') && (
+            <button
+              type="button"
+              className="btn-keltic-primary"
+              style={{
+                padding: '0.45rem 0.85rem',
+                fontSize: '0.68rem',
+                background: 'rgba(255, 107, 0, 0.15)',
+                borderColor: 'var(--accent-ember)',
+                color: 'var(--accent-ember)',
+              }}
+              onClick={() => setStaffModalOpen(true)}
+            >
+              <Shield size={13} />
+              {currentUser.rol === 'Admin' ? 'PANEL PRIVADO ADMIN' : 'CONSOLA PRIVADA STAFF'}
+            </button>
+          )}
 
           <button
+            type="button"
             className="btn-keltic-outline"
             style={{ padding: '0.45rem 0.85rem', fontSize: '0.68rem' }}
             onClick={() => setAuthModalOpen(true)}
           >
             <UserCheck size={13} />
-            {currentUser.nombre}
+            {currentUser.nombre} ({currentUser.rol})
           </button>
         </div>
       </header>
@@ -967,9 +970,7 @@ export const App: React.FC = () => {
                     ? 'ARSENAL DE OBJETOS EXTRA'
                     : finalStageTab === 'reservar'
                       ? 'CONFIRMA TU RESERVA Y PAGO'
-                      : finalStageTab === 'sesiones'
-                        ? 'AGENDA Y CONTROL DE SESIONES'
-                        : 'PANEL DE ADMINISTRACIÓN'}
+                      : 'MIS RESERVAS'}
                 </h2>
               </div>
 
@@ -990,22 +991,11 @@ export const App: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  className={`role-btn ${finalStageTab === 'sesiones' ? 'is-selected' : ''}`}
-                  onClick={() => setFinalStageTab('sesiones')}
+                  className={`role-btn ${finalStageTab === 'mis-reservas' ? 'is-selected' : ''}`}
+                  onClick={() => setFinalStageTab('mis-reservas')}
                 >
-                  {currentUser.rol === 'Cliente'
-                    ? `Mis Reservas (${reservas.length})`
-                    : `Control Sala (${reservas.length})`}
+                  3. Mis Reservas ({reservas.filter((r) => r.idCliente === currentUser.id).length})
                 </button>
-                {currentUser.rol === 'Admin' && (
-                  <button
-                    type="button"
-                    className={`role-btn ${finalStageTab === 'admin' ? 'is-selected' : ''}`}
-                    onClick={() => setFinalStageTab('admin')}
-                  >
-                    Estadísticas
-                  </button>
-                )}
               </div>
             </div>
 
@@ -1402,30 +1392,27 @@ export const App: React.FC = () => {
               </div>
             )}
 
-            {/* SUB-VISTA 3: MIS RESERVAS / CONTROL DE SESIONES */}
-            {finalStageTab === 'sesiones' && (
+            {/* SUB-VISTA 3: MIS RESERVAS (EXCLUSIVO DEL CLIENTE) */}
+            {finalStageTab === 'mis-reservas' && (
               <div className="keltic-table-wrap">
                 <table className="keltic-table">
                   <thead>
                     <tr>
-                      <th>Reserva / Cliente</th>
+                      <th>Código Reserva</th>
                       <th>Cámara & Paquete</th>
-                      <th>Horario</th>
+                      <th>Horario Agendado</th>
                       <th>Total</th>
                       <th>Estado</th>
                       <th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {reservas.map((r) => {
-                      const esStaffOAdmin =
-                        currentUser.rol === 'Staff' ||
-                        currentUser.rol === 'Admin';
-                      return (
+                    {reservas
+                      .filter((r) => r.idCliente === currentUser.id)
+                      .map((r) => (
                         <tr key={r.id}>
                           <td style={{ fontFamily: 'var(--font-mono)' }}>
-                            <strong>#{r.id.slice(0, 8)}</strong> —{' '}
-                            {r.nombreCliente}
+                            <strong>#{r.id.slice(0, 8)}</strong>
                           </td>
                           <td>
                             <strong>{r.nombreSala}</strong> ({r.nombrePaquete})
@@ -1465,48 +1452,6 @@ export const App: React.FC = () => {
                                   Pagar
                                 </button>
                               )}
-                              {esStaffOAdmin && r.estado === 'Confirmada' && (
-                                <button
-                                  type="button"
-                                  className="btn-keltic-primary"
-                                  style={{
-                                    padding: '0.3rem 0.65rem',
-                                    fontSize: '0.66rem',
-                                  }}
-                                  onClick={async () => {
-                                    await smashzoneApi.cambiarEstadoReserva(
-                                      r.id,
-                                      'EnProceso',
-                                      currentUser,
-                                      token
-                                    );
-                                    await cargarTodo();
-                                  }}
-                                >
-                                  Iniciar Sala
-                                </button>
-                              )}
-                              {esStaffOAdmin && r.estado === 'EnProceso' && (
-                                <button
-                                  type="button"
-                                  className="btn-keltic-primary"
-                                  style={{
-                                    padding: '0.3rem 0.65rem',
-                                    fontSize: '0.66rem',
-                                  }}
-                                  onClick={async () => {
-                                    await smashzoneApi.cambiarEstadoReserva(
-                                      r.id,
-                                      'Completada',
-                                      currentUser,
-                                      token
-                                    );
-                                    await cargarTodo();
-                                  }}
-                                >
-                                  Finalizar
-                                </button>
-                              )}
                               {(r.estado === 'Pendiente' ||
                                 r.estado === 'Confirmada') && (
                                 <button
@@ -1532,118 +1477,24 @@ export const App: React.FC = () => {
                             </div>
                           </td>
                         </tr>
-                      );
-                    })}
+                      ))}
+                    {reservas.filter((r) => r.idCliente === currentUser.id).length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          style={{
+                            textAlign: 'center',
+                            padding: '2.5rem 1rem',
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.85rem',
+                          }}
+                        >
+                          No tienes reservas registradas actualmente. Personaliza tu sesión y horario en la pestaña <strong>2. Reservar y Pagar</strong>.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
-              </div>
-            )}
-
-            {/* SUB-VISTA 4: ESTADÍSTICAS ADMIN */}
-            {finalStageTab === 'admin' && currentUser.rol === 'Admin' && (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '1.2rem',
-                }}
-              >
-                <div className="keltic-card">
-                  <span className="keltic-badge badge-volt">
-                    INGRESOS POR MES
-                  </span>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-end',
-                      gap: '0.8rem',
-                      height: 150,
-                      marginTop: '1rem',
-                    }}
-                  >
-                    {ingresosMes.map((im) => {
-                      const maxIng = Math.max(
-                        1,
-                        ...ingresosMes.map((x) => x.totalIngresos)
-                      );
-                      const hPct = Math.max(
-                        15,
-                        Math.round((im.totalIngresos / maxIng) * 100)
-                      );
-                      return (
-                        <div
-                          key={`${im.anio}-${im.mes}`}
-                          style={{
-                            flex: 1,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            height: '100%',
-                            justifyContent: 'flex-end',
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontFamily: 'var(--font-mono)',
-                              fontSize: '0.68rem',
-                              color: 'var(--accent-volt)',
-                            }}
-                          >
-                            S/ {im.totalIngresos.toFixed(0)}
-                          </div>
-                          <div
-                            style={{
-                              width: '100%',
-                              height: `${hPct}%`,
-                              background:
-                                'linear-gradient(180deg, var(--accent-rage), var(--accent-ember))',
-                            }}
-                          />
-                          <div
-                            style={{
-                              fontFamily: 'var(--font-mono)',
-                              fontSize: '0.66rem',
-                              marginTop: '0.3rem',
-                            }}
-                          >
-                            {im.anio}-{String(im.mes).padStart(2, '0')}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="keltic-card">
-                  <span className="keltic-badge badge-rage">
-                    PAQUETES MÁS DEMANDADOS ({usuariosAdmin.length} USUARIOS)
-                  </span>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.65rem',
-                      marginTop: '1rem',
-                    }}
-                  >
-                    {paquetesDemanda.map((pd, i) => (
-                      <div key={pd.idPaquete} className="ticket-row">
-                        <span>
-                          {i === 0 ? '🏆 ' : ''}
-                          <strong>{pd.paquete}</strong>
-                        </span>
-                        <span
-                          style={{
-                            fontFamily: 'var(--font-mono)',
-                            color: 'var(--accent-volt)',
-                          }}
-                        >
-                          {pd.totalReservas} reservas
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             )}
           </div>
@@ -1667,7 +1518,7 @@ export const App: React.FC = () => {
       {/* PISTA DE SCROLL DE 680VH */}
       <div className="scrolly-spacer-track" />
 
-      {/* MODAL DE CUENTA */}
+      {/* MODAL DE CUENTA (CON ACCESO PRIVADO A OPERACIONES) */}
       {authModalOpen && (
         <div
           className="keltic-modal-backdrop"
@@ -1683,6 +1534,7 @@ export const App: React.FC = () => {
             >
               <strong>CUENTA SMASHZONE ({currentUser.rol})</strong>
               <button
+                type="button"
                 className="btn-keltic-outline"
                 style={{ padding: '0.3rem 0.6rem' }}
                 onClick={() => setAuthModalOpen(false)}
@@ -1700,6 +1552,231 @@ export const App: React.FC = () => {
               <span>Email:</span>
               <strong>{currentUser.email}</strong>
             </div>
+            <div className="ticket-row">
+              <span>Rol de Acceso:</span>
+              <strong style={{ color: currentUser.rol === 'Cliente' ? 'var(--text-primary)' : 'var(--accent-ember)' }}>
+                {currentUser.rol}
+              </strong>
+            </div>
+
+            {(currentUser.rol === 'Admin' || currentUser.rol === 'Staff') && (
+              <div style={{ marginTop: '1.2rem', paddingTop: '0.8rem', borderTop: '1px solid var(--border-hairline)' }}>
+                <button
+                  type="button"
+                  className="btn-keltic-primary"
+                  style={{ width: '100%', padding: '0.65rem 1rem', fontSize: '0.78rem' }}
+                  onClick={() => {
+                    setAuthModalOpen(false);
+                    setStaffModalOpen(true);
+                  }}
+                >
+                  <Shield size={14} />
+                  {currentUser.rol === 'Admin'
+                    ? 'ABRIR PANEL DE CONTROL ADMINISTRATIVO'
+                    : 'ABRIR CONSOLA DE OPERACIONES STAFF'}
+                </button>
+              </div>
+            )}
+
+            {/* SELECTOR PRIVADO DE PERFILES DE PRUEBA (DESARROLLO INTERNO) */}
+            <div style={{ marginTop: '1.2rem', paddingTop: '1rem', borderTop: '1px solid var(--border-hairline)' }}>
+              <div
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.66rem',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '0.6rem',
+                }}
+              >
+                // PERFIL DE PRUEBA (SIMULADOR DE ROL)
+              </div>
+              <div className="role-switcher-pill" style={{ width: '100%' }}>
+                {(['Cliente', 'Staff', 'Admin'] as RolNombre[]).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    style={{ flex: 1 }}
+                    className={`role-btn ${currentUser.rol === r ? 'is-selected' : ''}`}
+                    onClick={() => {
+                      cambiarRolDemo(r);
+                      setAuthModalOpen(false);
+                    }}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONSOLA PRIVADA PARA STAFF Y ADMIN (SEPARADA DE LA VISTA PÚBLICA DEL CLIENTE) */}
+      {staffModalOpen && (
+        <div
+          className="keltic-modal-backdrop"
+          onClick={() => setStaffModalOpen(false)}
+        >
+          <div
+            className="keltic-modal"
+            style={{ maxWidth: 960, width: '94%', maxHeight: '88vh', overflowY: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1.2rem',
+                borderBottom: '1px solid var(--border-hairline)',
+                paddingBottom: '0.8rem',
+              }}
+            >
+              <div>
+                <span className="section-index-tag">// ÁREA INTERNA PRIVADA</span>
+                <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: '1.35rem' }}>
+                  {currentUser.rol === 'Admin'
+                    ? 'PANEL PRIVADO DE ADMINISTRACIÓN'
+                    : 'CONSOLA DE OPERACIONES STAFF'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="btn-keltic-outline"
+                style={{ padding: '0.35rem 0.7rem' }}
+                onClick={() => setStaffModalOpen(false)}
+              >
+                <X size={15} /> Cerrar
+              </button>
+            </div>
+
+            {/* TABLA DE OPERACIONES EN LOCAL (TODAS LAS RESERVAS) */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '0.6rem',
+                }}
+              >
+                <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>CONTROL DE BÓVEDAS Y SESIONES EN LOCAL</span>
+                <span className="keltic-badge badge-rage">{reservas.length} SESIONES TOTALES</span>
+              </div>
+              <div className="keltic-table-wrap">
+                <table className="keltic-table">
+                  <thead>
+                    <tr>
+                      <th>Cliente & Contacto</th>
+                      <th>Cámara & Paquete</th>
+                      <th>Horario</th>
+                      <th>Total</th>
+                      <th>Estado</th>
+                      <th>Gestión de Sala</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reservas.map((r) => (
+                      <tr key={r.id}>
+                        <td>
+                          <strong>{r.nombreCliente}</strong>
+                          <div style={{ fontSize: '0.66rem', color: 'var(--text-secondary)' }}>
+                            #{r.id.slice(0, 8)}
+                          </div>
+                        </td>
+                        <td>
+                          <strong>{r.nombreSala}</strong> ({r.nombrePaquete})
+                        </td>
+                        <td style={{ fontFamily: 'var(--font-mono)' }}>
+                          {new Date(r.fechaHoraInicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-volt)', fontWeight: 700 }}>
+                          S/ {r.montoTotal.toFixed(2)}
+                        </td>
+                        <td>
+                          <span className="keltic-badge badge-volt">{r.estado}</span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                            {r.estado === 'Pendiente' && (
+                              <button
+                                type="button"
+                                className="btn-keltic-primary"
+                                style={{ padding: '0.25rem 0.55rem', fontSize: '0.65rem' }}
+                                onClick={async () => {
+                                  await smashzoneApi.procesarPago(
+                                    { idReserva: r.id, idMetodoPago: 3, exitoso: true },
+                                    currentUser,
+                                    token
+                                  );
+                                  await cargarTodo();
+                                }}
+                              >
+                                Cobrar Caja
+                              </button>
+                            )}
+                            {r.estado === 'Confirmada' && (
+                              <button
+                                type="button"
+                                className="btn-keltic-primary"
+                                style={{ padding: '0.25rem 0.55rem', fontSize: '0.65rem' }}
+                                onClick={async () => {
+                                  await smashzoneApi.cambiarEstadoReserva(r.id, 'EnProceso', currentUser, token);
+                                  await cargarTodo();
+                                }}
+                              >
+                                Iniciar Sala
+                              </button>
+                            )}
+                            {r.estado === 'EnProceso' && (
+                              <button
+                                type="button"
+                                className="btn-keltic-primary"
+                                style={{
+                                  padding: '0.25rem 0.55rem',
+                                  fontSize: '0.65rem',
+                                  background: 'var(--accent-volt)',
+                                  color: '#000',
+                                }}
+                                onClick={async () => {
+                                  await smashzoneApi.cambiarEstadoReserva(r.id, 'Completada', currentUser, token);
+                                  await cargarTodo();
+                                }}
+                              >
+                                Finalizar
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {currentUser.rol === 'Admin' && (
+              <div
+                style={{
+                  marginTop: '1.2rem',
+                  padding: '1.2rem',
+                  background: 'rgba(255, 42, 42, 0.05)',
+                  border: '1px solid var(--border-hairline)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <strong style={{ display: 'block', fontSize: '0.92rem' }}>
+                      Dashboard Oficial de Analíticas y Negocio (Alexis / Bloque 4)
+                    </strong>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      Módulo oficial con KPIs de facturación, curva mensual de ingresos, paquetes líderes y horas pico.
+                    </span>
+                  </div>
+                  <span className="keltic-badge badge-volt">OFICIAL // PRIVADO</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

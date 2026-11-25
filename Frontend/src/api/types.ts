@@ -72,3 +72,20 @@ export interface FiltroUsuarios {
   pagina?: number
   tamanoPagina?: number
 }
+
+export interface IngresoMes {
+  anio: number
+  mes: number
+  totalIngresos: number
+}
+
+export interface PaqueteDemanda {
+  idPaquete: number
+  paquete: string
+  totalReservas: number
+}
+
+export interface HoraPico {
+  hora: number
+  totalReservas: number
+}
