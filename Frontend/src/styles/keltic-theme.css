@@ -1,0 +1,665 @@
+/* ==========================================================================
+   SMASHZONE — 3D SCROLLYTELLING STAGE & KINETIC UI
+   Toda la web se mueve y transforma sincronizada con el movimiento del Mazo 3D
+   ========================================================================== */
+
+:root {
+  --bg-void: #070709;
+  --bg-surface: rgba(14, 14, 20, 0.78);
+  --bg-elevated: rgba(20, 20, 29, 0.88);
+  --bg-glass: rgba(10, 10, 15, 0.82);
+
+  --accent-rage: #ff2a2a;
+  --accent-ember: #ff6b00;
+  --accent-volt: #d4ff00;
+  --accent-cyan: #00f0ff;
+
+  --text-primary: #f4f3ef;
+  --text-secondary: #a5a4b0;
+  --text-muted: #5d5c69;
+
+  --border-hairline: rgba(244, 243, 239, 0.12);
+  --border-strong: rgba(244, 243, 239, 0.26);
+  --border-rage: rgba(255, 42, 42, 0.65);
+
+  --font-display: 'Syne', sans-serif;
+  --font-sans: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background-color: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Textura granulada industrial de fondo */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.04;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.75) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* ==========================================================================
+   PRELOADER
+   ========================================================================== */
+.keltic-preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: var(--bg-void);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2rem 3rem;
+  border-bottom: 2px solid var(--accent-rage);
+}
+
+.preloader-top-bar,
+.preloader-bottom-bar {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.preloader-center {
+  max-width: 680px;
+  margin: 0 auto;
+  width: 100%;
+  text-align: center;
+}
+
+.preloader-tag {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  color: var(--accent-rage);
+  margin-bottom: 0.5rem;
+}
+
+.preloader-counter {
+  font-family: var(--font-display);
+  font-size: clamp(4.5rem, 13vw, 10rem);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+}
+
+.preloader-pct {
+  font-size: 0.35em;
+  color: var(--accent-volt);
+  margin-left: 0.15rem;
+}
+
+.preloader-progress-track {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 1.5rem 0 1rem;
+  overflow: hidden;
+}
+
+.preloader-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-rage), var(--accent-ember), var(--accent-volt));
+  transition: width 0.08s linear;
+}
+
+.preloader-status {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   SHATTER CANVAS & CUSTOM CURSOR (SOBREPUESTO SOBRE TODA LA WEB)
+   ========================================================================== */
+.keltic-shatter-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9995;
+}
+
+.keltic-cursor-dot,
+.keltic-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+}
+
+.keltic-cursor-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--accent-volt);
+  border-radius: 50%;
+}
+
+.keltic-cursor-ring {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(244, 243, 239, 0.45);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.22s ease, height 0.22s ease, background-color 0.22s ease, border-color 0.22s ease;
+}
+
+.keltic-cursor-ring.is-active {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 42, 42, 0.12);
+  border-color: var(--accent-rage);
+}
+
+.keltic-cursor-label {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--text-primary);
+}
+
+@media (pointer: coarse) {
+  .keltic-cursor-dot,
+  .keltic-cursor-ring {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   HUD NAVBAR FIJO SUPERIOR
+   ========================================================================== */
+.keltic-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-hairline);
+  padding: 0.75rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  background: var(--accent-rage);
+  color: #070709;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  clip-path: polygon(0 0, 85% 0, 100% 25%, 100% 100%, 15% 100%, 0 75%);
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+}
+
+.brand-sub {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.14em;
+  display: block;
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.nav-link-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-link-btn:hover,
+.nav-link-btn.active {
+  color: var(--accent-volt);
+  border-color: var(--accent-volt);
+  background: rgba(212, 255, 0, 0.06);
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.role-switcher-pill {
+  display: inline-flex;
+  background: rgba(14, 14, 20, 0.9);
+  border: 1px solid var(--border-hairline);
+  padding: 0.18rem;
+  gap: 0.2rem;
+}
+
+.role-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  padding: 0.32rem 0.6rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: all 0.2s;
+}
+
+.role-btn.is-selected {
+  background: var(--accent-rage);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   SCROLLYTELLING VIEWPORT (LA WEB ENTERA SE TRANSFORMA CON EL SCROLL DEL MAZO)
+   ========================================================================== */
+.scrolly-spacer-track {
+  width: 100%;
+  height: 680vh; /* Pista de scroll para que Lenis mueva el mazo y cambie las etapas */
+  position: relative;
+  z-index: 1;
+}
+
+.scrolly-fixed-viewport {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10;
+  pointer-events: none;
+  perspective: 1400px;
+  overflow: hidden;
+}
+
+.scrolly-stage-layer {
+  position: absolute;
+  inset: 68px 0 54px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 3rem;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+
+.scrolly-interactive-panel {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 1380px;
+}
+
+/* Barra inferior de progreso de viaje del mazo */
+.scrolly-bottom-hud {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  z-index: 500;
+  background: var(--bg-glass);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--border-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary);
+}
+
+.scrolly-progress-bar {
+  position: fixed;
+  bottom: 52px;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-rage), var(--accent-ember), var(--accent-volt));
+  z-index: 501;
+}
+
+/* ==========================================================================
+   COMPONENTES VISUALES & TARJETAS CON GLASSMORPHISM INDUSTRIAL
+   ========================================================================== */
+.hero-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.2em;
+  color: var(--accent-rage);
+  text-transform: uppercase;
+  margin-bottom: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hero-headline {
+  font-family: var(--font-display);
+  font-size: clamp(2.8rem, 6.2vw, 5.8rem);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  margin-bottom: 1.25rem;
+}
+
+.hero-headline .outline-stroke {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--text-primary);
+}
+
+.hero-lead {
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 560px;
+  margin-bottom: 1.75rem;
+}
+
+.section-index-tag {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--accent-rage);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3.6vw, 3rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 0.98;
+}
+
+.keltic-card {
+  background: var(--bg-surface);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border-hairline);
+  padding: 1.45rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.keltic-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.65);
+}
+
+.keltic-card.is-selected {
+  border-color: var(--accent-rage);
+  background: linear-gradient(160deg, rgba(255, 42, 42, 0.14), rgba(14, 14, 20, 0.86));
+  box-shadow: 0 0 30px rgba(255, 42, 42, 0.22);
+}
+
+.keltic-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid currentColor;
+}
+
+.badge-volt {
+  color: var(--accent-volt);
+  background: rgba(212, 255, 0, 0.08);
+}
+
+.badge-rage {
+  color: var(--accent-rage);
+  background: rgba(255, 42, 42, 0.12);
+}
+
+.badge-ember {
+  color: var(--accent-ember);
+  background: rgba(255, 107, 0, 0.12);
+}
+
+.badge-cyan {
+  color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.1);
+}
+
+.badge-muted {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.btn-keltic-primary {
+  background: var(--accent-rage);
+  color: #fff;
+  border: 1px solid var(--accent-rage);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  padding: 0.85rem 1.45rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  transition: all 0.22s ease;
+  clip-path: polygon(0 0, 94% 0, 100% 24%, 100% 100%, 6% 100%, 0 76%);
+}
+
+.btn-keltic-primary:hover {
+  background: #ff4242;
+  box-shadow: 0 0 28px rgba(255, 42, 42, 0.55);
+  transform: translateY(-2px);
+}
+
+.btn-keltic-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-keltic-outline {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.2rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-keltic-outline:hover {
+  border-color: var(--accent-volt);
+  color: var(--accent-volt);
+  background: rgba(212, 255, 0, 0.07);
+}
+
+.keltic-input,
+.keltic-select {
+  width: 100%;
+  background: rgba(7, 7, 9, 0.9);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 0.65rem 0.85rem;
+  outline: none;
+}
+
+.keltic-input:focus,
+.keltic-select:focus {
+  border-color: var(--accent-rage);
+}
+
+.keltic-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 0.35rem;
+}
+
+.ticket-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.55rem 0;
+  border-bottom: 1px dashed var(--border-hairline);
+  font-size: 0.85rem;
+}
+
+.rage-bar-outer {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+
+.rage-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-volt), var(--accent-ember), var(--accent-rage));
+  transition: width 0.25s ease;
+}
+
+.keltic-table-wrap {
+  width: 100%;
+  max-height: 52vh;
+  overflow: auto;
+  border: 1px solid var(--border-hairline);
+  background: rgba(10, 10, 15, 0.84);
+  backdrop-filter: blur(12px);
+}
+
+.keltic-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.keltic-table th,
+.keltic-table td {
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.keltic-table th {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  position: sticky;
+  top: 0;
+}
+
+.keltic-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 6000;
+  background: rgba(5, 5, 8, 0.86);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.keltic-modal {
+  background: #14141d;
+  border: 1px solid var(--border-strong);
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.85rem;
+}
+
+.alert-banner {
+  padding: 0.8rem 1.1rem;
+  border-left: 4px solid var(--accent-rage);
+  background: rgba(255, 42, 42, 0.14);
+  backdrop-filter: blur(10px);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.alert-banner.success {
+  border-left-color: var(--accent-volt);
+  background: rgba(212, 255, 0, 0.12);
+  color: var(--accent-volt);
+}

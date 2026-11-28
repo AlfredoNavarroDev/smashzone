@@ -2,6 +2,33 @@
 .brand-logo { display: block; width: clamp(130px, 14vw, 180px); height: 54px; object-fit: contain; object-position: left center; }
 .brand-shard { width: 21px; height: 27px; color: #ff641f; flex: none; }
 .brand-zone { color: #ff641f; }
+
+.btn-back-3d {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(230, 255, 42, 0.08);
+  border: 1px solid rgba(230, 255, 42, 0.35);
+  color: #e6ff2a;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+.btn-back-3d:hover {
+  background: rgba(230, 255, 42, 0.18);
+  border-color: #e6ff2a;
+  transform: translateY(-1px);
+  color: #fff;
+  box-shadow: 0 0 15px rgba(230, 255, 42, 0.25);
+}
+.btn-back-3d svg { width: 15px; height: 15px; flex: none; }
+
 .shell-nav a { display: flex; align-items: center; gap: 11px; }
 .shell-nav svg, .shell-logout svg { width: 18px; height: 18px; flex: none; }
 .shell-account { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -17,9 +44,10 @@
 .shell-admin .topbar {
   position: relative; z-index: 10; isolation: isolate;
   width: calc(100% - 48px); max-width: 1490px; margin: 0 auto;
-  display: grid; grid-template-columns: minmax(210px, 1fr) 312px minmax(210px, 1fr);
+  display: grid; grid-template-columns: minmax(210px, 1fr) 420px minmax(210px, 1fr);
   align-items: center; gap: 24px; padding: 7px 0; border: 0; background: transparent;
 }
+.shell-admin .topbar-left { grid-column: 1; }
 .shell-admin .topbar-user { grid-column: 3; }
 .shell-admin .shell-nav::before {
   content: ''; position: absolute; inset: 3px; z-index: -1; pointer-events: none;
@@ -45,11 +73,16 @@
 .shell-admin .brand-shard { width: 25px; height: 32px; color: #ff681f; filter: drop-shadow(0 0 12px #ff4d0040); transition: transform .35s ease; }
 .shell-admin .brand-logo { width: clamp(170px, 17vw, 218px); height: 76px; }
 .shell-admin .brand:hover .brand-shard { transform: rotate(-10deg) scale(1.1); }
-.shell-admin .shell-nav { position: fixed; top: 26px; left: 50%; transform: translateX(-50%); z-index: 10; filter: drop-shadow(0 12px 22px #0008); isolation: isolate; display: grid; grid-template-columns: repeat(2,156px); grid-template-rows: 66px; flex: none; gap: 0; margin: 0; padding: 0; background: transparent; }
-.shell-admin .shell-nav a { position: relative; z-index: 2; justify-content: center; padding: 0 14px; gap: 10px; border: 0; border-radius: 0; color: #aaa7a3; font-size: .76rem; font-weight: 700; text-decoration: none; transition: color .25s; }
+.shell-admin .shell-nav {
+  position: fixed; top: 26px; left: 50%; transform: translateX(-50%);
+  z-index: 10; filter: drop-shadow(0 12px 22px #0008); isolation: isolate;
+  display: grid; grid-template-columns: repeat(3, 140px); grid-template-rows: 66px;
+  flex: none; gap: 0; margin: 0; padding: 0; background: transparent;
+}
+.shell-admin .shell-nav a { position: relative; z-index: 2; justify-content: center; padding: 0 12px; gap: 9px; border: 0; border-radius: 0; color: #aaa7a3; font-size: .74rem; font-weight: 700; text-decoration: none; transition: color .25s; }
 .shell-admin .shell-nav a:hover { color: #fff; }
 .shell-admin .shell-nav a.active { color: #201006; background: transparent; }
-.shell-admin .shell-nav a svg { width: 17px; height: 17px; }
+.shell-admin .shell-nav a svg { width: 16px; height: 16px; }
 .shell-nav-indicator {
   position: absolute;
   inset: 0;
@@ -65,15 +98,18 @@
   top: 4px;
   bottom: 4px;
   left: 4px;
-  width: calc(50% - 4px);
+  width: calc(33.33% - 4px);
   background: linear-gradient(125deg, #ff852d, #ff641a 60%, #ed4208);
-  clip-path: polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%);
-  transition: left .5s cubic-bezier(.22,1.12,.32,1), width .5s cubic-bezier(.22,1.12,.32,1), clip-path .5s ease;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  transition: left .35s cubic-bezier(.22,1.12,.32,1), clip-path .35s ease;
 }
-.shell-nav-indicator[data-side='right']::before {
-  left: calc(50% - 12px);
-  width: calc(50% + 8px);
-  clip-path: polygon(12px 0,100% 0,100% 100%,0 100%);
+.shell-nav-indicator[data-tab='1']::before {
+  left: calc(33.33% + 2px);
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+.shell-nav-indicator[data-tab='2']::before {
+  left: calc(66.66% + 2px);
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%);
 }
 .shell-nav-indicator[data-visible='false'] { opacity: 0; }
 .shell-admin .topbar-user { display: flex; align-items: center; justify-content: flex-end; padding: 0; min-width: 0; color: #eee8e3; clip-path: polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%); }
@@ -95,12 +131,12 @@
 .shell-client .content { flex: 1; display: flex; width: 100%; max-width: none; padding: 0; }
 .shell-client .perfil-page { flex: 1; min-height: 0; }
 .shell-nav a:focus-visible, .shell-logout:focus-visible, .brand:focus-visible, .shell-account:focus-visible { outline: 2px solid #ff7024; outline-offset: 3px; }
-@media (max-width: 940px) {
-  .shell-admin .topbar { grid-template-columns: 1fr auto; gap: 4px; padding-bottom: 62px; }
-  .shell-admin .shell-nav { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-rows: 48px; }
+@media (max-width: 1080px) {
+  .shell-admin .topbar { grid-template-columns: 1fr auto; gap: 10px; padding-bottom: 70px; }
+  .shell-admin .shell-nav { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: 48px; }
   .shell-admin .topbar-user { grid-column: 2; grid-row: 1; }
   .shell-admin .brand { min-height: 58px; }
-  .shell-admin .shell-nav { top: 104px; width: min(calc(100% - 48px), 360px); }
+  .shell-admin .shell-nav { top: 104px; width: min(calc(100% - 48px), 420px); }
 }
 @media (max-width: 600px) {
   .shell-admin .topbar { width: calc(100% - 24px); top: 8px; }
@@ -112,7 +148,7 @@
   .shell-admin .shell-account > div { display: none; }
   .shell-admin .shell-logout { padding: 8px; }
   .shell-admin .content { padding: 20px 16px; }
+  .btn-back-3d span { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .shell-nav-indicator, .shell-admin .shell-nav a, .shell-logout, .shell-admin .brand-shard, .shell-avatar img { transition: none; } }
-
 @media (prefers-reduced-motion: reduce) { .shell-nav-indicator::before { transition: none; } }
