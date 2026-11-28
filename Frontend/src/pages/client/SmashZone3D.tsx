@@ -23,7 +23,13 @@ import {
   UsuarioDTO,
   VoucherDTO,
 } from '../../types/api.types';
-import { ApiDomainError, smashzoneApi } from '../../api/smashzoneApi';
+import { ApiDomainError } from '../../api/engine';
+import * as authApi from '../../api/auth';
+import { listarSalas } from '../../api/salas';
+import { listarPaquetes } from '../../api/paquetes';
+import { listarInventario } from '../../api/inventario';
+import { listarReservas, crearReserva, cambiarEstadoReserva } from '../../api/reservas';
+import { procesarPago } from '../../api/pagos';
 import { Preloader } from '../../components/keltic/Preloader';
 import {
   ShatterCanvas,
@@ -156,10 +162,10 @@ export const SmashZone3D: React.FC = () => {
   ) => {
     try {
       const [salasData, paqData, invData, resData] = await Promise.all([
-        smashzoneApi.listarSalas(),
-        smashzoneApi.listarPaquetes(),
-        smashzoneApi.listarInventario(),
-        smashzoneApi.listarReservas(actor, filtroEst, token),
+        listarSalas(),
+        listarPaquetes(),
+        listarInventario(),
+        listarReservas(actor, filtroEst, token),
       ]);
       setSalas(salasData);
       setPaquetes(paqData);
@@ -181,9 +187,9 @@ export const SmashZone3D: React.FC = () => {
   const cambiarRolDemo = async (rol: RolNombre) => {
     try {
       const creds = DEMO_ACCOUNTS[rol];
-      const resp = await smashzoneApi.login(creds);
+      const resp = await authApi.login(creds.email, creds.password);
       setToken(resp.token);
-      setCurrentUser(resp.usuario);
+      setCurrentUser({ ...resp.usuario, fechaRegistro: resp.usuario.fechaRegistro ?? new Date().toISOString() });
       setFinalStageTab('reservar');
       scrollToProgress(0.92);
       triggerShatterBurst(window.innerWidth / 2, 90);
@@ -338,7 +344,7 @@ export const SmashZone3D: React.FC = () => {
         cantidad: x.cantidad,
       }));
 
-      const creada = await smashzoneApi.crearReserva(
+      const creada = await crearReserva(
         {
           idSala: selectedSalaId,
           idPaquete: selectedPaqueteId,
@@ -375,7 +381,7 @@ export const SmashZone3D: React.FC = () => {
           ? `tkn_live_ok_${Math.random().toString(36).slice(2, 10)}`
           : 'tkn_test_declined_insufficient_funds';
 
-      const voucher = await smashzoneApi.procesarPago(
+      const voucher = await procesarPago(
         {
           idReserva: reservaId,
           idMetodoPago: 1,
@@ -1477,7 +1483,7 @@ export const SmashZone3D: React.FC = () => {
                                     fontSize: '0.66rem',
                                   }}
                                   onClick={async () => {
-                                    await smashzoneApi.cambiarEstadoReserva(
+                                    await cambiarEstadoReserva(
                                       r.id,
                                       'Cancelada',
                                       currentUser,

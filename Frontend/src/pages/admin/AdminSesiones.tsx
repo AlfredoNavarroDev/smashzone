@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { smashzoneApi } from '../../api/smashzoneApi';
+import { listarReservas, cambiarEstadoReserva } from '../../api/reservas';
+import { procesarPago } from '../../api/pagos';
 import type { ReservaDetalleDTO, UsuarioDTO } from '../../types/api.types';
 import { useAuth } from '../../context/useAuth';
 import './DashboardNegocio.css';
@@ -37,10 +38,10 @@ export default function AdminSesiones() {
   const cargar = async () => {
     setCargando(true);
     try {
-      const data = await smashzoneApi.listarReservas(currentUser, undefined, token);
+      const data = await listarReservas(currentUser, undefined, token);
       setReservas(data);
     } catch {
-      // fallback handled by smashzoneApi
+      // fallback (motor de simulación) manejado dentro de listarReservas
     } finally {
       setCargando(false);
     }
@@ -117,7 +118,7 @@ export default function AdminSesiones() {
                         className="btn-keltic-primary"
                         style={{ padding: '0.3rem 0.7rem', fontSize: '0.72rem' }}
                         onClick={async () => {
-                          await smashzoneApi.procesarPago(
+                          await procesarPago(
                             { idReserva: r.id, idMetodoPago: 3, exitoso: true },
                             currentUser,
                             token
@@ -134,7 +135,7 @@ export default function AdminSesiones() {
                         className="btn-keltic-primary"
                         style={{ padding: '0.3rem 0.7rem', fontSize: '0.72rem' }}
                         onClick={async () => {
-                          await smashzoneApi.cambiarEstadoReserva(r.id, 'EnProceso', currentUser, token);
+                          await cambiarEstadoReserva(r.id, 'EnProceso', currentUser, token);
                           await cargar();
                         }}
                       >
@@ -152,7 +153,7 @@ export default function AdminSesiones() {
                           color: '#000',
                         }}
                         onClick={async () => {
-                          await smashzoneApi.cambiarEstadoReserva(r.id, 'Completada', currentUser, token);
+                          await cambiarEstadoReserva(r.id, 'Completada', currentUser, token);
                           await cargar();
                         }}
                       >

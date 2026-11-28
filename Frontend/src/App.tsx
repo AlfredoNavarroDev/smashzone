@@ -9,6 +9,7 @@ import AdminSesiones from './pages/admin/AdminSesiones'
 import Perfil from './pages/perfil/Perfil'
 import Login from './pages/auth/Login'
 import Registro from './pages/auth/Registro'
+import { RequireAuth, RequireRole } from './router/guards'
 
 export const App: React.FC = () => {
   return (
@@ -29,11 +30,17 @@ export const App: React.FC = () => {
           {/* =================================================================
               CENTRO DE CONTROL ADMINISTRATIVO Y PERFILES (VISTA COMPLETA DEDICADA)
               ================================================================= */}
-          <Route element={<Layout />}>
-            <Route path="/admin" element={<DashboardNegocio />} />
-            <Route path="/admin/usuarios" element={<DashboardUsuarios />} />
-            <Route path="/admin/sesiones" element={<AdminSesiones />} />
-            <Route path="/perfil" element={<Perfil />} />
+          <Route element={<RequireAuth />}>
+            <Route element={<Layout />}>
+              <Route path="perfil" element={<Perfil />} />
+              <Route element={<RequireRole roles={['Admin']} />}>
+                <Route path="admin" element={<DashboardNegocio />} />
+                <Route path="admin/usuarios" element={<DashboardUsuarios />} />
+              </Route>
+              <Route element={<RequireRole roles={['Admin', 'Staff']} />}>
+                <Route path="admin/sesiones" element={<AdminSesiones />} />
+              </Route>
+            </Route>
           </Route>
 
           {/* REDIRECCIÓN POR DEFECTO */}

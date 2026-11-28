@@ -10,9 +10,15 @@ export function RequireAuth() {
   return <Outlet />
 }
 
-/** Exige uno de los roles indicados; un Cliente que entra a una ruta Admin vuelve al inicio. */
+/** Envía la ruta raíz a la pantalla útil para cada rol. */
+export function RedirectByRole() {
+  const { hasRole } = useAuth()
+  return <Navigate to={hasRole('Admin') ? '/admin' : '/perfil'} replace />
+}
+
+/** Exige uno de los roles indicados; un Cliente que entra a una ruta Admin vuelve a su perfil. */
 export function RequireRole({ roles }: { roles: RolNombre[] }) {
   const { hasRole } = useAuth()
-  if (!hasRole(...roles)) return <Navigate to="/" replace />
+  if (!hasRole(...roles)) return <Navigate to="/perfil" replace />
   return <Outlet />
 }

@@ -3,7 +3,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import type { RolNombre, Usuario } from '../api/types'
 import { AuthContext, type AuthContextValue } from '../context/authContext'
-import { RequireAuth, RequireRole } from './guards'
+import { RedirectByRole, RequireAuth, RequireRole } from './guards'
 
 function usuario(rol: RolNombre): Usuario {
   return { id: '1', nombre: 'Ana', apellido: 'G', email: 'a@x.com', telefono: null, documentoIdentidad: null, rol, activo: true, fechaRegistro: null }
@@ -23,7 +23,8 @@ function renderEn(path: string, u: Usuario | null) {
         <Routes>
           <Route path="/login" element={<p>pantalla login</p>} />
           <Route element={<RequireAuth />}>
-            <Route path="/" element={<p>inicio</p>} />
+            <Route path="/" element={<RedirectByRole />} />
+            <Route path="/perfil" element={<p>perfil</p>} />
             <Route element={<RequireRole roles={['Admin']} />}>
               <Route path="/admin" element={<p>panel admin</p>} />
             </Route>
@@ -40,10 +41,10 @@ describe('guards de rutas', () => {
     expect(screen.getByText('pantalla login')).toBeInTheDocument()
   })
 
-  it('un Cliente no accede a rutas Admin y vuelve al inicio', () => {
+  it('un Cliente no accede a rutas Admin y vuelve a su perfil', () => {
     renderEn('/admin', usuario('Cliente'))
     expect(screen.queryByText('panel admin')).not.toBeInTheDocument()
-    expect(screen.getByText('inicio')).toBeInTheDocument()
+    expect(screen.getByText('perfil')).toBeInTheDocument()
   })
 
   it('un Admin accede al panel', () => {
